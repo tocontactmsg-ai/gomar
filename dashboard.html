@@ -1,23 +1,5 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-    <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>لوحة التحكم المحمية</title>
-    <script>
-        (function() {
-            const correctPassword = "1234"; // 🔐 ضع كلمة المرور الخاصة بك هنا
-            const userPass = prompt("الرجاء إدخال كلمة المرور للوصول إلى لوحة التحكم:");
-            if (userPass !== correctPassword) {
-                alert("كلمة المرور غير صحيحة!");
-                window.location.href = "https://www.google.com";
-                throw new Error("Access Denied");
-            }
-        })();
-    </script>
-    <!-- باقي أكواد الـ HTML والتصميم الخاصة بك هنا -->
-</head>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -52,13 +34,13 @@
                     <span class="p-2 bg-blue-50 text-blue-600 rounded-2xl text-xl">📊</span> 
                     لوحة التحليلات والتتبع الموحدة
                 </h1>
-                <p class="text-xs text-slate-500 mt-1 font-medium">سجل تفاعلات مركزي شامل لكل التقييمات والشكاوى مع تتبع الـ IP والـ ID</p>
+                <p class="text-xs text-slate-500 mt-1 font-medium">سجل تفاعلات مركزي مع تقيق دقيق للـ IP وطراز الهاتف</p>
             </div>
 
             <!-- زر التصدير والفلترة -->
             <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
                 <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-2xl shadow transition flex items-center gap-2">
-                    <span>📥</span> تصدير السجل الموحد (Export CSV)
+                    <span>📥</span> تصدير السجل (Export CSV)
                 </button>
 
                 <div class="flex items-center bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
@@ -130,8 +112,8 @@
 
             <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm mb-2">🔍 البحث السريع وتتبع الـ IP</h3>
-                    <p class="text-xs text-slate-400 mb-4">ابحث بالاسم، الهاتف، الموظف، IP العميل، أو ID الجهاز</p>
+                    <h3 class="font-bold text-slate-800 text-sm mb-2">🔍 البحث السريع</h3>
+                    <p class="text-xs text-slate-400 mb-4">ابحث بالاسم، الهاتف، IP العميل، أو طراز الجهاز</p>
                     <input type="text" id="search-input" onkeyup="filterTables()" placeholder="اكتب هنا للبحث السريع..." class="w-full p-3.5 border border-slate-200 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-medium">
                 </div>
 
@@ -143,11 +125,11 @@
             </div>
         </div>
 
-        <!-- الجدول الموحد الشامل (Unified Master Table) -->
+        <!-- الجدول الموحد بدون عمود الموظف وبإضافة طراز الهاتف والـ IP -->
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                    <span>📑</span> السجل الموحد الشامل لكل التفاعلات والشكاوى (Unified Activity & Complaints Log)
+                    <span>📑</span> السجل الموحد الشامل لكل التفاعلات والشكاوى
                 </h3>
                 <span class="text-[10px] text-slate-500 font-bold bg-white px-2.5 py-1 rounded-full border">أعمدة قابلة للسحب والتكبير ↔️</span>
             </div>
@@ -161,14 +143,13 @@
                             <th class="p-3.5 w-28">النجوم <div class="resizer"></div></th>
                             <th class="p-3.5 w-28">اسم العميل <div class="resizer"></div></th>
                             <th class="p-3.5 w-28">رقم الهاتف <div class="resizer"></div></th>
-                            <th class="p-3.5 w-24">الموظف <div class="resizer"></div></th>
                             <th class="p-3.5 w-32">عنوان الـ IP <div class="resizer"></div></th>
-                            <th class="p-3.5 w-28">المعرف (Device ID) <div class="resizer"></div></th>
+                            <th class="p-3.5 w-36">طراز الهاتف (Model) <div class="resizer"></div></th>
                             <th class="p-3.5 min-w-[220px]">التفاصيل والرسالة <div class="resizer"></div></th>
                         </tr>
                     </thead>
                     <tbody id="master-table-body" class="divide-y divide-slate-100 font-medium">
-                        <tr><td colspan="9" class="p-6 text-center text-slate-400">جاري التحميل...</td></tr>
+                        <tr><td colspan="8" class="p-6 text-center text-slate-400">جاري التحميل...</td></tr>
                     </tbody>
                 </table>
             </div>
