@@ -1,6 +1,7 @@
 const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwsH2CA0nla_YuK0tSkWzHEuJJYIRhx-p-Dcgu4iXTbnhL8P5xjGS3pei3L6KqVCUR2/exec";
 let globalData = { logs: [], complaints: [] };
 let activePeriod = 'all';
+let selectedStarFilter = null;
 let chartInstance = null;
 
 async function loadData() {
@@ -37,6 +38,13 @@ function setPeriodFilter(period) {
     applyFiltersAndRender();
 }
 
+function resetStarFilter() {
+    selectedStarFilter = null;
+    document.getElementById('active-star-badge').classList.add('hidden');
+    document.getElementById('reset-star-filter').classList.add('hidden');
+    applyFiltersAndRender();
+}
+
 function applyFiltersAndRender() {
     const rawLogs = globalData.logs || [];
     const rawComplaints = globalData.complaints || [];
@@ -44,8 +52,7 @@ function applyFiltersAndRender() {
     const dateFrom = document.getElementById('date-from').value ? new Date(document.getElementById('date-from').value) : null;
     const dateTo = document.getElementById('date-to').value ? new Date(document.getElementById('date-to').value) : null;
 
-    // تصفية السجلات حسب الفترة أو مدى التاريخ المخصص
-    const filteredLogs = rawLogs.filter((r, idx) => {
+    let filteredLogs = rawLogs.filter((r, idx) => {
         if (idx === 0) return true;
         const rowDate = new Date(r[0]);
         if (dateFrom && rowDate < dateFrom) return false;
@@ -58,7 +65,7 @@ function applyFiltersAndRender() {
         return true;
     });
 
-    const filteredComplaints = rawComplaints.filter((r, idx) => {
+    let filteredComplaints = rawComplaints.filter((r, idx) => {
         if (idx === 0) return true;
         const rowDate = new Date(r[0]);
         if (dateFrom && rowDate < dateFrom) return false;
@@ -71,7 +78,6 @@ function applyFiltersAndRender() {
         return true;
     });
 
-    // حساب النجوم والتفاعلات
     let starsCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     let totalStarsSum = 0;
     let totalRatedItems = 0;
@@ -86,13 +92,27 @@ function applyFiltersAndRender() {
     });
 
     filteredComplaints.slice(1).forEach(r => {
-        let stars = parseInt(r[7]) || 2; // افتراضي الشكوى منخفضة
+        let stars = parseInt(r[7]) || 2;
         if (stars >= 1 && stars <= 5) {
             starsCount[stars]++;
             totalStarsSum += stars;
             totalRatedItems++;
         }
     });
+
+    if (selectedStarFilter !== null) {
+        filteredLogs = filteredLogs.filter((r, idx) => {
+            if (idx === 0) return true;
+            let stars = parseInt(r[6]) || extractStarsFromDetails(r[3]) || 0;
+            return stars === selectedStarFilter;
+        });
+
+        filteredComplaints = filteredComplaints.filter((r, idx) => {
+            if (idx === 0) return true;
+            let stars = parseInt(r[7]) || 2;
+            return stars === selectedStarFilter;
+        });
+    }
 
     const totalScans = Math.max(0, filteredLogs.length - 1);
     const positiveCount = filteredLogs.filter(r => r[1] && String(r[1]).includes("إيجابي")).length;
@@ -105,8 +125,7 @@ function applyFiltersAndRender() {
     document.getElementById('avg-stars').innerText = `${avgStars} ⭐`;
 
     renderStarsChart(starsCount);
-    renderComplaintsTable(filteredComplaints);
-    renderLogTable(filteredLogs);
+    renderMasterTable(filteredLogs, filteredComplaints);
 }
 
 function extractStarsFromDetails(txt) {
@@ -130,62 +149,77 @@ function isDateInPeriod(dateObj, period) {
     return true;
 }
 
-function renderComplaintsTable(complaints) {
-    const compBody = document.getElementById('complaints-table-body');
-    compBody.innerHTML = "";
-    
-    if (!complaints || complaints.length <= 1) {
-        compBody.innerHTML = `<tr><td colspan="7" class="p-5 text-center text-slate-400">لا توجد شكاوى مسجلة لهذه الفترة.</td></tr>`;
-        return;
-    }
+// دمج الجدولين في جدول موحد واحد
+function renderMasterTable(logs, complaints) {
+    const tbody = document.getElementById('master-table-body');
+    tbody.innerHTML = "";
 
-    for (let i = complaints.length - 1; i >= 1; i--) {
-        const r = complaints[i];
-        const dateStr = r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-';
-        const starsNum = r[7] || extractStarsFromDetails(r[4]) || 2;
-        const starVisual = "⭐".repeat(starsNum);
+    let combinedRows = [];
 
-        compBody.innerHTML += `
-            <tr class="hover:bg-rose-50/40 transition">
-                <td class="p-3.5 font-mono text-slate-500">${dateStr}</td>
-                <td class="p-3.5"><span class="bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded text-[11px]">${starVisual} (${starsNum}/5)</span></td>
-                <td class="p-3.5 font-bold text-slate-800">${r[1] || 'غير محدد'}</td>
-                <td class="p-3.5"><a href="tel:${r[2]}" class="text-blue-600 underline font-bold">${r[2]}</a></td>
-                <td class="p-3.5 text-slate-700">${r[3] || 'عام'}</td>
-                <td class="p-3.5 font-mono text-purple-600 font-bold">${r[5] || 'N/A'}</td>
-                <td class="p-3.5 text-slate-800 leading-relaxed font-semibold">${r[4]}</td>
-            </tr>
-        `;
-    }
-}
-
-function renderLogTable(logs) {
-    const logBody = document.getElementById('log-table-body');
-    logBody.innerHTML = "";
-    
-    if (!logs || logs.length <= 1) {
-        logBody.innerHTML = `<tr><td colspan="6" class="p-5 text-center text-slate-400">لا توجد سجلات لهذه الفترة.</td></tr>`;
-        return;
-    }
-
-    for (let i = logs.length - 1; i >= 1; i--) {
+    // معالجة بيانات اللوغ
+    for (let i = 1; i < logs.length; i++) {
         const r = logs[i];
-        const dateStr = r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-';
         const isPositive = r[1] && String(r[1]).includes("إيجابي");
-        const starsNum = r[6] || extractStarsFromDetails(r[3]) || (isPositive ? 5 : 2);
-        const tagClass = isPositive ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800";
-        
-        logBody.innerHTML += `
+        combinedRows.push({
+            date: r[0] ? new Date(r[0]) : new Date(0),
+            dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
+            type: r[1] || 'نشاط',
+            badgeClass: isPositive ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800",
+            stars: r[6] || extractStarsFromDetails(r[3]) || (isPositive ? 5 : 3),
+            clientName: '-',
+            phone: '-',
+            employee: r[2] || 'عام',
+            ip: r[7] || '0.0.0.0',
+            deviceId: r[4] || 'N/A',
+            details: r[3] || '-'
+        });
+    }
+
+    // معالجة بيانات الشكاوى
+    for (let i = 1; i < complaints.length; i++) {
+        const r = complaints[i];
+        const starsNum = r[7] || 2;
+        combinedRows.push({
+            date: r[0] ? new Date(r[0]) : new Date(0),
+            dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
+            type: '🚨 شكوى داخلية',
+            badgeClass: "bg-rose-100 text-rose-800 font-bold",
+            stars: starsNum,
+            clientName: r[1] || 'غير محدد',
+            phone: r[2] || '-',
+            employee: r[3] || 'عام',
+            ip: r[8] || '0.0.0.0',
+            deviceId: r[5] || 'N/A',
+            details: r[4] || '-'
+        });
+    }
+
+    // ترتيب السجلات تنازلياً حسب التاريخ الأحدث
+    combinedRows.sort((a, b) => b.date - a.date);
+
+    if (combinedRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">لا توجد بيانات مسجلة مطابقة للفلتر.</td></tr>`;
+        return;
+    }
+
+    combinedRows.forEach(row => {
+        const starVisual = "⭐".repeat(row.stars);
+        const phoneLink = row.phone !== '-' ? `<a href="tel:${row.phone}" class="text-blue-600 underline font-bold">${row.phone}</a>` : '-';
+
+        tbody.innerHTML += `
             <tr class="hover:bg-slate-50 transition">
-                <td class="p-3.5 font-mono text-slate-400">${dateStr}</td>
-                <td class="p-3.5"><span class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${tagClass}">${r[1]} (${starsNum}★)</span></td>
-                <td class="p-3.5 text-blue-600 font-medium">${r[2]}</td>
-                <td class="p-3.5 text-slate-600">${r[3]}</td>
-                <td class="p-3.5 font-mono text-purple-600">${r[4] || 'N/A'}</td>
-                <td class="p-3.5 text-slate-500">${r[5] || '-'}</td>
+                <td class="p-3.5 font-mono text-slate-400">${row.dateStr}</td>
+                <td class="p-3.5"><span class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${row.badgeClass}">${row.type}</span></td>
+                <td class="p-3.5 font-bold">${starVisual} (${row.stars}/5)</td>
+                <td class="p-3.5 font-bold text-slate-800">${row.clientName}</td>
+                <td class="p-3.5">${phoneLink}</td>
+                <td class="p-3.5 text-blue-600 font-medium">${row.employee}</td>
+                <td class="p-3.5 font-mono text-slate-600">${row.ip}</td>
+                <td class="p-3.5 font-mono text-purple-600">${row.deviceId}</td>
+                <td class="p-3.5 text-slate-800 font-semibold leading-relaxed">${row.details}</td>
             </tr>
         `;
-    }
+    });
 }
 
 function renderStarsChart(starsData) {
@@ -199,7 +233,6 @@ function renderStarsChart(starsData) {
         data: {
             labels: ['1 نجمة ⭐', '2 نجمتان ⭐⭐', '3 نجوم ⭐⭐⭐', '4 نجوم ⭐⭐⭐⭐', '5 نجوم ⭐⭐⭐⭐⭐'],
             datasets: [{
-                label: 'عدد التقييمات',
                 data: [starsData[1], starsData[2], starsData[3], starsData[4], starsData[5]],
                 backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#14b8a6', '#10b981'],
                 borderRadius: 8
@@ -209,6 +242,19 @@ function renderStarsChart(starsData) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
+            onClick: (e, activeElements) => {
+                if (activeElements.length > 0) {
+                    const clickedIndex = activeElements[0].index;
+                    const starClicked = clickedIndex + 1;
+                    
+                    selectedStarFilter = starClicked;
+                    document.getElementById('star-filter-val').innerText = starClicked;
+                    document.getElementById('active-star-badge').classList.remove('hidden');
+                    document.getElementById('reset-star-filter').classList.remove('hidden');
+
+                    applyFiltersAndRender();
+                }
+            },
             scales: {
                 y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
                 x: { grid: { display: false } }
@@ -217,52 +263,59 @@ function renderStarsChart(starsData) {
     });
 }
 
-// جعل الأعمدة قابلة للتكبير عبر السحب (Draggable Column Resizing)
+function exportToCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += "Date,Type,Stars,Client Name,Phone,Employee,IP Address,Device ID,Details\n";
+
+    const rawLogs = globalData.logs || [];
+    for (let i = 1; i < rawLogs.length; i++) {
+        const r = rawLogs[i];
+        csvContent += `"${r[0]}","${r[1]}","${r[6] || ''}","-","-","${r[2]}","${r[7] || ''}","${r[4] || ''}","${r[3]}"\n`;
+    }
+
+    const rawComp = globalData.complaints || [];
+    for (let i = 1; i < rawComp.length; i++) {
+        const r = rawComp[i];
+        csvContent += `"${r[0]}","Complaint","${r[7] || 2}","${r[1]}","${r[2]}","${r[3]}","${r[8] || ''}","${r[5] || ''}","${r[4]}"\n`;
+    }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Unified_Reviews_Report_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 function makeColumnsResizable() {
     document.querySelectorAll('.resizable-table').forEach(table => {
-        const cols = table.querySelectorAll('th');
-        cols.forEach(col => {
+        table.querySelectorAll('th').forEach(col => {
             const resizer = col.querySelector('.resizer');
             if (!resizer) return;
 
-            let x = 0;
-            let w = 0;
-
-            const mouseDownHandler = function (e) {
+            let x = 0, w = 0;
+            resizer.addEventListener('mousedown', function (e) {
                 x = e.clientX;
-                const styles = window.getComputedStyle(col);
-                w = parseInt(styles.width, 10);
+                w = parseInt(window.getComputedStyle(col).width, 10);
+
+                const mouseMoveHandler = (e) => col.style.width = `${w - (e.clientX - x)}px`;
+                const mouseUpHandler = () => {
+                    document.removeEventListener('mousemove', mouseMoveHandler);
+                    document.removeEventListener('mouseup', mouseUpHandler);
+                };
 
                 document.addEventListener('mousemove', mouseMoveHandler);
                 document.addEventListener('mouseup', mouseUpHandler);
-                resizer.classList.add('resizing');
-            };
-
-            const mouseMoveHandler = function (e) {
-                const dx = e.clientX - x;
-                col.style.width = `${w - dx}px`; // RTL Handling
-            };
-
-            const mouseUpHandler = function () {
-                document.removeEventListener('mousemove', mouseMoveHandler);
-                document.removeEventListener('mouseup', mouseUpHandler);
-                resizer.classList.remove('resizing');
-            };
-
-            resizer.addEventListener('mousedown', mouseDownHandler);
+            });
         });
     });
 }
 
 function filterTables() {
     const q = document.getElementById('search-input').value.toLowerCase();
-    
-    document.querySelectorAll('#complaints-table-body tr').forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
-    });
-
-    document.querySelectorAll('#log-table-body tr').forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+    document.querySelectorAll('#master-table-body tr').forEach(r => {
+        r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
     });
 }
 
