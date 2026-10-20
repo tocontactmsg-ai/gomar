@@ -3,134 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحليلات وإدارة السمعة</title>
+    <title>لوحة التحكم والتحليلات الذكية</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Cairo', sans-serif; } </style>
-</head>
-<body class="bg-slate-50 text-slate-800">
-
-    <div class="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style> 
+        body { font-family: 'Cairo', sans-serif; }
         
-        <!-- الهيدر وشريط الفلترة الزمنية -->
-        <header class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        /* تصميم الأعمدة القابلة للتكبير والسحب */
+        .resizable-table th {
+            position: relative;
+        }
+        .resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 5px;
+            cursor: col-resize;
+            user-select: none;
+            height: 100%;
+            background-color: transparent;
+        }
+        .resizer:hover, .resizing {
+            background-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <div class="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
+        
+        <!-- الهيدر والتحكم الرئيسي -->
+        <header class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div>
-                <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <span>📊</span> لوحة التحكم والتحليلات الزمانية
+                <h1 class="text-2xl font-black text-slate-900 flex items-center gap-3">
+                    <span class="p-2 bg-blue-50 text-blue-600 rounded-2xl text-xl">📊</span> 
+                    نظام إدارة السمعة والتحليلات الذكية
                 </h1>
-                <p class="text-xs text-slate-400 mt-1">تتبع مباشر للتقييمات، الشكاوى، وأداء الأجهزة والموظفين</p>
+                <p class="text-xs text-slate-500 mt-1 font-medium">متابعة لحظية ودقيقة لأداء الموظفين وتقييمات العملاء حسب عدد النجوم والفترة الزمانية</p>
             </div>
 
-            <!-- أزرار التصفية الفترية (Period Filter) -->
-            <div class="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs">
-                <button onclick="setPeriodFilter('all')" id="filter-all" class="px-3 py-1.5 rounded-lg font-bold bg-white text-slate-800 shadow-sm transition">الكل</button>
-                <button onclick="setPeriodFilter('today')" id="filter-today" class="px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">اليوم</button>
-                <button onclick="setPeriodFilter('week')" id="filter-week" class="px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">هذا الأسبوع</button>
-                <button onclick="setPeriodFilter('month')" id="filter-month" class="px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">هذا الشهر</button>
-            </div>
+            <!-- الفلترة الزمنية المتقدمة (Period & Custom Date Range) -->
+            <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                <div class="flex items-center bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold w-full sm:w-auto justify-between">
+                    <button onclick="setPeriodFilter('all')" id="btn-period-all" class="px-3 py-1.5 rounded-xl bg-white text-blue-600 shadow-sm">الكل</button>
+                    <button onclick="setPeriodFilter('today')" id="btn-period-today" class="px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900">اليوم</button>
+                    <button onclick="setPeriodFilter('week')" id="btn-period-week" class="px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900">الأسبوع</button>
+                    <button onclick="setPeriodFilter('month')" id="btn-period-month" class="px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900">الشهر</button>
+                </div>
 
-            <div class="text-left">
-                <span id="last-update" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border font-mono">جاري التحميل...</span>
+                <!-- نطاق تاريخ مخصص -->
+                <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs">
+                    <input type="date" id="date-from" onchange="applyFiltersAndRender()" class="bg-white px-2 py-1 rounded-xl text-slate-700 outline-none border text-xs">
+                    <span class="text-slate-400 font-bold">إلى</span>
+                    <input type="date" id="date-to" onchange="applyFiltersAndRender()" class="bg-white px-2 py-1 rounded-xl text-slate-700 outline-none border text-xs">
+                </div>
+
+                <span id="last-update" class="text-xs bg-blue-50 text-blue-600 px-3 py-2 rounded-2xl font-mono font-bold border border-blue-100">جاري التحميل...</span>
             </div>
         </header>
 
-        <!-- KPI Cards المنظمة -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <!-- KPI Cards الأداء -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
                 <div>
-                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">إجمالي التفاعلات</p>
-                    <h3 id="total-scans" class="text-3xl font-extrabold text-slate-800 mt-2">0</h3>
+                    <p class="text-xs text-slate-400 font-bold uppercase">إجمالي التفاعلات</p>
+                    <h3 id="total-scans" class="text-3xl font-black text-slate-800 mt-1">0</h3>
                 </div>
-                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl text-2xl">📱</div>
+                <div class="p-3.5 bg-slate-100 text-slate-700 rounded-2xl text-xl">📱</div>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
                 <div>
-                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">التحويل لخرائط جوجل</p>
-                    <h3 id="total-positive" class="text-3xl font-extrabold text-emerald-600 mt-2">0</h3>
+                    <p class="text-xs text-slate-400 font-bold uppercase">التحويل لخرائط جوجل</p>
+                    <h3 id="total-positive" class="text-3xl font-black text-emerald-600 mt-1">0</h3>
                 </div>
-                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-2xl">⭐</div>
+                <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-2xl text-xl">🚀</div>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
                 <div>
-                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">الشكاوى الواردة</p>
-                    <h3 id="total-complaints" class="text-3xl font-extrabold text-rose-600 mt-2">0</h3>
+                    <p class="text-xs text-slate-400 font-bold uppercase">الشكاوى الواردة</p>
+                    <h3 id="total-complaints" class="text-3xl font-black text-rose-600 mt-1">0</h3>
                 </div>
-                <div class="p-3 bg-rose-50 text-rose-600 rounded-xl text-2xl">🚨</div>
+                <div class="p-3.5 bg-rose-50 text-rose-600 rounded-2xl text-xl">🚨</div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-bold uppercase">متوسط التقييم العام</p>
+                    <h3 id="avg-stars" class="text-3xl font-black text-amber-500 mt-1">0.0 ⭐</h3>
+                </div>
+                <div class="p-3.5 bg-amber-50 text-amber-600 rounded-2xl text-xl">⭐</div>
             </div>
         </div>
 
-        <!-- الرسم البياني والبحث -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div class="lg:col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <h3 class="font-bold text-slate-700 text-sm mb-4">📈 النظرة العامة للتوزيع</h3>
-                <div class="h-44">
-                    <canvas id="analyticsChart"></canvas>
+        <!-- الرسم البياني للنجوم والبحث -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- الرسم البياني المتقدم لتوزيع النجوم -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <span>📈</span> توزيع التقييمات حسب النجوم بالضبط (Exact Stars Breakdown)
+                    </h3>
+                </div>
+                <div class="h-56">
+                    <canvas id="starsChart"></canvas>
                 </div>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+            <!-- شريط البحث السريع والفلترة الحية -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-700 text-sm mb-2">🔍 البحث السريع والتصفية</h3>
-                    <p class="text-xs text-slate-400 mb-4">ابحث بأي معلومة (اسم، هاتف، موظف، ID)</p>
-                    <input type="text" id="search-input" onkeyup="filterTables()" placeholder="اكتب للبحث الفوري..." class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50">
+                    <h3 class="font-bold text-slate-800 text-sm mb-2">🔍 البحث الفوري والتصفية</h3>
+                    <p class="text-xs text-slate-400 mb-4">ابحث بأي نص (اسم العميل، الهاتف، الموظف، المعرف الفريد)</p>
+                    <input type="text" id="search-input" onkeyup="filterTables()" placeholder="اكتب هنا للبحث السريع..." class="w-full p-3.5 border border-slate-200 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-medium">
                 </div>
-                <div class="mt-4 pt-4 border-t flex gap-2 text-[11px] justify-around">
-                    <span class="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-md font-bold">🚨 شكاوى عاجلة</span>
-                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-md font-bold">⭐ تقييم إيجابي</span>
+
+                <div class="pt-4 border-t space-y-2 text-xs">
+                    <p class="font-bold text-slate-600 text-[11px]">تصنيف التقييمات:</p>
+                    <div class="flex flex-wrap gap-2 text-[10px]">
+                        <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg">5★ ممتاز</span>
+                        <span class="px-2.5 py-1 bg-teal-100 text-teal-800 font-bold rounded-lg">4★ جيد جداً</span>
+                        <span class="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded-lg">3★ مقبول</span>
+                        <span class="px-2.5 py-1 bg-rose-100 text-rose-800 font-bold rounded-lg">1-2★ سيء</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- جدول الشكاوى المصمم بكفاءة -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-4 bg-rose-50/60 border-b border-rose-100 flex justify-between items-center">
-                <h3 class="font-bold text-rose-800 text-sm flex items-center gap-2">
-                    <span>🚨</span> صندوق الشكاوى والحل الفوري
+        <!-- جدول الشكاوى مع أعمدة قابلة للتكبير (Resizable Columns) -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 bg-rose-50/70 border-b border-rose-100 flex justify-between items-center">
+                <h3 class="font-bold text-rose-900 text-sm flex items-center gap-2">
+                    <span>🚨</span> صندوق الشكاوى والحل الفوري (Resizable Columns)
                 </h3>
+                <span class="text-[10px] text-rose-500 font-bold bg-white px-2.5 py-1 rounded-full border border-rose-200">يمكنك سحب حواف الأعمدة لتكبيرها ↔️</span>
             </div>
+            
             <div class="overflow-x-auto">
-                <table class="w-full text-right border-collapse text-xs">
+                <table id="complaints-tbl" class="resizable-table w-full text-right border-collapse text-xs">
                     <thead>
-                        <tr class="bg-slate-50 text-slate-500 border-b font-semibold">
-                            <th class="p-3">التاريخ والوقت</th>
-                            <th class="p-3">اسم العميل</th>
-                            <th class="p-3">رقم التواصل</th>
-                            <th class="p-3">الموظف</th>
-                            <th class="p-3">المعرف (Unique ID)</th>
-                            <th class="p-3">الجهاز</th>
-                            <th class="p-3">تفاصيل المشكلة</th>
+                        <tr class="bg-slate-50 text-slate-500 border-b font-bold">
+                            <th class="p-3.5 w-40">التاريخ والوقت <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32">النجوم <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32">العميل <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32">الهاتف <div class="resizer"></div></th>
+                            <th class="p-3.5 w-28">الموظف <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32">المعرف الفريد <div class="resizer"></div></th>
+                            <th class="p-3.5 min-w-[250px]">تفاصيل المشكلة <div class="resizer"></div></th>
                         </tr>
                     </thead>
-                    <tbody id="complaints-table" class="divide-y divide-slate-100">
+                    <tbody id="complaints-table-body" class="divide-y divide-slate-100 font-medium">
                         <tr><td colspan="7" class="p-4 text-center text-slate-400">جاري التحميل...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- السجل الزمني الكامل (Audit Log) -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-4 bg-slate-50 border-b border-slate-200">
-                <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">
-                    <span>🕒</span> السجل الزمني المباشر (Timeline Log)
+        <!-- جدول السجل الزمني الكامل (Audit Log Table) -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 bg-slate-50 border-b border-slate-200">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <span>🕒</span> السجل الزمني للتفاعلات (Live Audit Log)
                 </h3>
             </div>
-            <div class="overflow-x-auto max-h-80 overflow-y-auto">
-                <table class="w-full text-right border-collapse text-xs">
+            
+            <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                <table id="log-tbl" class="resizable-table w-full text-right border-collapse text-xs">
                     <thead>
-                        <tr class="bg-slate-100 text-slate-500 border-b sticky top-0 font-semibold">
-                            <th class="p-3">الوقت</th>
-                            <th class="p-3">الحدث</th>
-                            <th class="p-3">الموظف</th>
-                            <th class="p-3">التفاصيل</th>
-                            <th class="p-3">المعرف الفريد</th>
-                            <th class="p-3">نوع الجهاز</th>
+                        <tr class="bg-slate-100 text-slate-600 border-b sticky top-0 font-bold">
+                            <th class="p-3.5 w-40">الوقت <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32">الحدث / النجوم <div class="resizer"></div></th>
+                            <th class="p-3.5 w-28">الموظف <div class="resizer"></div></th>
+                            <th class="p-3.5 min-w-[200px]">التفاصيل <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32">المعرف الفريد <div class="resizer"></div></th>
+                            <th class="p-3.5 w-28">نوع الجهاز <div class="resizer"></div></th>
                         </tr>
                     </thead>
-                    <tbody id="log-table" class="divide-y divide-slate-100">
+                    <tbody id="log-table-body" class="divide-y divide-slate-100">
                         <tr><td colspan="6" class="p-4 text-center text-slate-400">جاري التحميل...</td></tr>
                     </tbody>
                 </table>
