@@ -1,128 +1,317 @@
-const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbykMW4uXSm3daQuyEToMWKtorLxmp_ljmFWf5x4rnHeFqpsLuW3kmdGJAVKZsRsm2Js/exec";
-const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/%D9%85%D8%B3%D8%AC%D8%AF+%D8%A7%D9%84%D8%B3%D9%8A%D8%AF%D8%A9+%D8%AE%D8%AF%D9%8A%D8%AC%D8%A9+%D8%B1%D8%B6%D9%8A+%D8%A7%D9%84%D9%84%D9%87+%D8%B9%D9%86%D9%87%D8%A7%E2%80%AD/@25.2848258,55.6730083,13z/data=!4m6!3m5!1s0x3ef58d6a26c1ded7:0xf87a5958ff53f9e9!8m2!3d25.2848146!4d55.6436769!16s%2Fg%2F11tn70cps_?entry=ttu&g_ep=EgoyMDI2MTAxOC4wIKXMDSoASAFQAw%3D%3D";
+const SCRIPT_API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+let globalData = { logs: [], complaints: [] };
+let activePeriod = 'all';
+let selectedStarFilter = null;
+let chartInstance = null;
 
-
-const urlParams = new URLSearchParams(window.location.search);
-const employeeId = urlParams.get('emp') || 'عام';
-const employeeName = urlParams.get('name') || 'موظف عام';
-
-let isHighReview = false; // متغير لمعرفة نوع التقييم
-
-function getDeviceId() {
-    let devId = localStorage.getItem('user_unique_id');
-    if (!devId) {
-        devId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-        localStorage.setItem('user_unique_id', devId);
-    }
-    return devId;
-}
-
-function getPhoneType() {
-    const ua = navigator.userAgent;
-    if (/android/i.test(ua)) return "Android";
-    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "iOS (iPhone)";
-    if (/Macintosh/.test(ua)) return "Mac Computer";
-    if (/Windows/.test(ua)) return "Windows PC";
-    return "متصفح آخر";
-}
-
-function rate(stars) {
-    const deviceId = getDeviceId();
-    const phoneType = getPhoneType();
-
-    if (stars >= 4) {
-        isHighReview = true; // تحديد التقييم كمرتفع
-        sendLogToBackend("تقييم إيجابي", `تم اختيار ${stars} نجوم للموظف: ${employeeName}`, deviceId, phoneType);
-        
-        document.getElementById('stars-container').classList.add('hidden');
-        document.getElementById('main-header').classList.add('hidden');
-        document.getElementById('reward-box').classList.remove('hidden');
-    } else {
-        isHighReview = false; // تقييم منخفض
-        document.getElementById('stars-container').classList.add('hidden');
-        document.getElementById('complaint-form').classList.remove('hidden');
-        
-        sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم للموظف: ${employeeName}`, deviceId, phoneType);
-    }
-}
-
-// دالة تنزيل الكوبون والتحويل المشروط لخرائط جوجل
-function downloadAndRedirect() {
-    const card = document.getElementById('coupon-card');
-    const statusText = document.getElementById('download-status');
-    const btn = document.getElementById('download-btn');
-
-    btn.disabled = true;
-    statusText.classList.remove('hidden');
-
-    html2canvas(card, { scale: 2 }).then(canvas => {
-        // إنشاء رابط تنزيل الصورة
-        const link = document.createElement('a');
-        link.download = 'Discount-Coupon.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-
-        // التوجيه الشرطي بعد إتمام التحميل
-        setTimeout(() => {
-            if (isHighReview) {
-                // تقييم مرتفع ⬅️ تحويل إلى خرائط جوجل
-                sendLogToBackend("انتقال لصفحة جوجل", `تم تحويل العميل لخرائط جوجل بعد تنزيل الكوبون للموظف: ${employeeName}`, getDeviceId(), getPhoneType());
-                window.location.href = GOOGLE_REVIEW_URL;
-            } else {
-                // تقييم منخفض ⬅️ عدم تحويل
-                statusText.innerText = "تم حفظ الكوبون بنجاح! شكراً لتعاونك معنا ✅";
-                btn.classList.add('hidden');
-            }
-        }, 1500);
-    });
-}
-
-async function submitComplaint(event) {
-    event.preventDefault();
-    
-    const name = document.getElementById('client-name').value;
-    const phone = document.getElementById('client-phone').value;
-    const message = document.getElementById('client-message').value;
-
-    const payload = {
-        type: "complaint",
-        employeeId: employeeId,
-        employeeName: employeeName,
-        clientName: name,
-        phone: phone,
-        message: message,
-        deviceId: getDeviceId(),
-        phoneType: getPhoneType()
-    };
+async function loadData() {
+    const updateBadge = document.getElementById('last-update');
+    if (updateBadge) updateBadge.innerText = "جاري المزامنة... ⏳";
 
     try {
-        await fetch(SCRIPT_API_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        document.getElementById('complaint-form').classList.add('hidden');
-        document.getElementById('main-header').classList.add('hidden');
-        document.getElementById('reward-box').classList.remove('hidden');
-    } catch (err) {
-        alert("حدث خطأ في الإرسال، يرجى المحاولة مرة أخرى.");
+        const res = await fetch(SCRIPT_API_URL);
+        globalData = await res.json();
+        
+        applyFiltersAndRender();
+        makeColumnsResizable();
+        if (updateBadge) updateBadge.innerText = "تحديث: " + new Date().toLocaleTimeString('ar-AE');
+    } catch (e) {
+        console.error("خطأ في جلب البيانات", e);
+        if (updateBadge) updateBadge.innerText = "خطأ الاتصال ❌";
     }
 }
 
-function sendLogToBackend(action, details, deviceId, phoneType) {
-    fetch(SCRIPT_API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            type: "log",
-            action: action,
-            employeeName: employeeName,
-            details: details,
-            deviceId: deviceId,
-            phoneType: phoneType
-        })
+function setPeriodFilter(period) {
+    activePeriod = period;
+    document.getElementById('date-from').value = "";
+    document.getElementById('date-to').value = "";
+
+    ['all', 'today', 'week', 'month'].forEach(p => {
+        const btn = document.getElementById(`btn-period-${p}`);
+        if (p === period) {
+            btn.className = "px-3 py-1.5 rounded-xl bg-white text-blue-600 shadow-sm";
+        } else {
+            btn.className = "px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900";
+        }
+    });
+
+    applyFiltersAndRender();
+}
+
+function resetStarFilter() {
+    selectedStarFilter = null;
+    document.getElementById('active-star-badge').classList.add('hidden');
+    document.getElementById('reset-star-filter').classList.add('hidden');
+    applyFiltersAndRender();
+}
+
+function applyFiltersAndRender() {
+    const rawLogs = globalData.logs || [];
+    const rawComplaints = globalData.complaints || [];
+
+    const dateFrom = document.getElementById('date-from').value ? new Date(document.getElementById('date-from').value) : null;
+    const dateTo = document.getElementById('date-to').value ? new Date(document.getElementById('date-to').value) : null;
+
+    let filteredLogs = rawLogs.filter((r, idx) => {
+        if (idx === 0) return true;
+        const rowDate = new Date(r[0]);
+        if (dateFrom && rowDate < dateFrom) return false;
+        if (dateTo) {
+            let nextDay = new Date(dateTo);
+            nextDay.setDate(nextDay.getDate() + 1);
+            if (rowDate >= nextDay) return false;
+        }
+        if (!dateFrom && !dateTo) return isDateInPeriod(rowDate, activePeriod);
+        return true;
+    });
+
+    let filteredComplaints = rawComplaints.filter((r, idx) => {
+        if (idx === 0) return true;
+        const rowDate = new Date(r[0]);
+        if (dateFrom && rowDate < dateFrom) return false;
+        if (dateTo) {
+            let nextDay = new Date(dateTo);
+            nextDay.setDate(nextDay.getDate() + 1);
+            if (rowDate >= nextDay) return false;
+        }
+        if (!dateFrom && !dateTo) return isDateInPeriod(rowDate, activePeriod);
+        return true;
+    });
+
+    let starsCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let totalStarsSum = 0;
+    let totalRatedItems = 0;
+
+    filteredLogs.slice(1).forEach(r => {
+        let stars = parseInt(r[6]) || extractStarsFromDetails(r[3]) || 0;
+        if (stars >= 1 && stars <= 5) {
+            starsCount[stars]++;
+            totalStarsSum += stars;
+            totalRatedItems++;
+        }
+    });
+
+    filteredComplaints.slice(1).forEach(r => {
+        let stars = parseInt(r[7]) || 2;
+        if (stars >= 1 && stars <= 5) {
+            starsCount[stars]++;
+            totalStarsSum += stars;
+            totalRatedItems++;
+        }
+    });
+
+    if (selectedStarFilter !== null) {
+        filteredLogs = filteredLogs.filter((r, idx) => {
+            if (idx === 0) return true;
+            let stars = parseInt(r[6]) || extractStarsFromDetails(r[3]) || 0;
+            return stars === selectedStarFilter;
+        });
+
+        filteredComplaints = filteredComplaints.filter((r, idx) => {
+            if (idx === 0) return true;
+            let stars = parseInt(r[7]) || 2;
+            return stars === selectedStarFilter;
+        });
+    }
+
+    const totalScans = Math.max(0, filteredLogs.length - 1);
+    const positiveCount = filteredLogs.filter(r => r[1] && String(r[1]).includes("إيجابي")).length;
+    const complaintsCount = Math.max(0, filteredComplaints.length - 1);
+    const avgStars = totalRatedItems > 0 ? (totalStarsSum / totalRatedItems).toFixed(1) : "0.0";
+
+    document.getElementById('total-scans').innerText = totalScans;
+    document.getElementById('total-positive').innerText = positiveCount;
+    document.getElementById('total-complaints').innerText = complaintsCount;
+    document.getElementById('avg-stars').innerText = `${avgStars} ⭐`;
+
+    renderStarsChart(starsCount);
+    renderMasterTable(filteredLogs, filteredComplaints);
+}
+
+function extractStarsFromDetails(txt) {
+    if (!txt) return 0;
+    let match = String(txt).match(/(\d)\s*نجوم/);
+    return match ? parseInt(match[1]) : 0;
+}
+
+function isDateInPeriod(dateObj, period) {
+    if (!dateObj || isNaN(dateObj.getTime())) return true;
+    const now = new Date();
+    
+    if (period === 'today') {
+        return dateObj.toDateString() === now.toDateString();
+    } else if (period === 'week') {
+        const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        return dateObj >= oneWeekAgo;
+    } else if (period === 'month') {
+        return dateObj.getMonth() === now.getMonth() && dateObj.getFullYear() === now.getFullYear();
+    }
+    return true;
+}
+
+// دمج الجدولين بدون عمود الموظف، وعرض طراز الهاتف والـ IP
+function renderMasterTable(logs, complaints) {
+    const tbody = document.getElementById('master-table-body');
+    tbody.innerHTML = "";
+
+    let combinedRows = [];
+
+    for (let i = 1; i < logs.length; i++) {
+        const r = logs[i];
+        const isPositive = r[1] && String(r[1]).includes("إيجابي");
+        combinedRows.push({
+            date: r[0] ? new Date(r[0]) : new Date(0),
+            dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
+            type: r[1] || 'نشاط',
+            badgeClass: isPositive ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800",
+            stars: r[6] || extractStarsFromDetails(r[3]) || (isPositive ? 5 : 3),
+            clientName: '-',
+            phone: '-',
+            ip: r[7] || '0.0.0.0',
+            phoneModel: r[5] || 'غير معروف',
+            details: r[3] || '-'
+        });
+    }
+
+    for (let i = 1; i < complaints.length; i++) {
+        const r = complaints[i];
+        const starsNum = r[7] || 2;
+        combinedRows.push({
+            date: r[0] ? new Date(r[0]) : new Date(0),
+            dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
+            type: '🚨 شكوى داخلية',
+            badgeClass: "bg-rose-100 text-rose-800 font-bold",
+            stars: starsNum,
+            clientName: r[1] || 'غير محدد',
+            phone: r[2] || '-',
+            ip: r[8] || '0.0.0.0',
+            phoneModel: r[6] || 'غير معروف',
+            details: r[4] || '-'
+        });
+    }
+
+    combinedRows.sort((a, b) => b.date - a.date);
+
+    if (combinedRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">لا توجد بيانات مسجلة مطابقة للفلتر.</td></tr>`;
+        return;
+    }
+
+    combinedRows.forEach(row => {
+        const starVisual = "⭐".repeat(row.stars);
+        const phoneLink = row.phone !== '-' ? `<a href="tel:${row.phone}" class="text-blue-600 underline font-bold">${row.phone}</a>` : '-';
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-3.5 font-mono text-slate-400">${row.dateStr}</td>
+                <td class="p-3.5"><span class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${row.badgeClass}">${row.type}</span></td>
+                <td class="p-3.5 font-bold">${starVisual} (${row.stars}/5)</td>
+                <td class="p-3.5 font-bold text-slate-800">${row.clientName}</td>
+                <td class="p-3.5">${phoneLink}</td>
+                <td class="p-3.5 font-mono text-blue-600 font-bold">${row.ip}</td>
+                <td class="p-3.5 text-slate-700 font-medium">${row.phoneModel}</td>
+                <td class="p-3.5 text-slate-800 font-semibold leading-relaxed">${row.details}</td>
+            </tr>
+        `;
     });
 }
+
+function renderStarsChart(starsData) {
+    const canvas = document.getElementById('starsChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['1 نجمة ⭐', '2 نجمتان ⭐⭐', '3 نجوم ⭐⭐⭐', '4 نجوم ⭐⭐⭐⭐', '5 نجوم ⭐⭐⭐⭐⭐'],
+            datasets: [{
+                data: [starsData[1], starsData[2], starsData[3], starsData[4], starsData[5]],
+                backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#14b8a6', '#10b981'],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            onClick: (e, activeElements) => {
+                if (activeElements.length > 0) {
+                    const clickedIndex = activeElements[0].index;
+                    const starClicked = clickedIndex + 1;
+                    
+                    selectedStarFilter = starClicked;
+                    document.getElementById('star-filter-val').innerText = starClicked;
+                    document.getElementById('active-star-badge').classList.remove('hidden');
+                    document.getElementById('reset-star-filter').classList.remove('hidden');
+
+                    applyFiltersAndRender();
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+function exportToCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += "Date,Type,Stars,Client Name,Phone,IP Address,Phone Model,Details\n";
+
+    const rawLogs = globalData.logs || [];
+    for (let i = 1; i < rawLogs.length; i++) {
+        const r = rawLogs[i];
+        csvContent += `"${r[0]}","${r[1]}","${r[6] || ''}","-","-","${r[7] || ''}","${r[5] || ''}","${r[3]}"\n`;
+    }
+
+    const rawComp = globalData.complaints || [];
+    for (let i = 1; i < rawComp.length; i++) {
+        const r = rawComp[i];
+        csvContent += `"${r[0]}","Complaint","${r[7] || 2}","${r[1]}","${r[2]}","${r[8] || ''}","${r[6] || ''}","${r[4]}"\n`;
+    }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Reviews_Report_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function makeColumnsResizable() {
+    document.querySelectorAll('.resizable-table').forEach(table => {
+        table.querySelectorAll('th').forEach(col => {
+            const resizer = col.querySelector('.resizer');
+            if (!resizer) return;
+
+            let x = 0, w = 0;
+            resizer.addEventListener('mousedown', function (e) {
+                x = e.clientX;
+                w = parseInt(window.getComputedStyle(col).width, 10);
+
+                const mouseMoveHandler = (e) => col.style.width = `${w - (e.clientX - x)}px`;
+                const mouseUpHandler = () => {
+                    document.removeEventListener('mousemove', mouseMoveHandler);
+                    document.removeEventListener('mouseup', mouseUpHandler);
+                };
+
+                document.addEventListener('mousemove', mouseMoveHandler);
+                document.addEventListener('mouseup', mouseUpHandler);
+            });
+        });
+    });
+}
+
+function filterTables() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    document.querySelectorAll('#master-table-body tr').forEach(r => {
+        r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+
+setInterval(loadData, 30000);
+loadData();
