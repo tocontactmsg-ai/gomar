@@ -6,90 +6,86 @@
     <title>قيم تجربتك معنا</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style> 
-        body { font-family: 'Cairo', sans-serif; } 
-        @keyframes pulse-border {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
+        body { font-family: 'Cairo', sans-serif; }
+        .star-btn {
+            transition: all 0.2s ease-in-out;
         }
-        .pulse-btn { animation: pulse-border 2s infinite ease-in-out; }
+        .star-btn:hover {
+            transform: scale(1.2);
+            filter: drop-shadow(0px 0px 8px rgba(250, 204, 21, 0.8));
+        }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-center space-y-6 border border-slate-200/80">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-center space-y-6 border border-slate-100 relative overflow-hidden">
         
         <!-- الهيدر والترحيب -->
         <div id="main-header">
-            <h2 class="text-2xl font-extrabold text-slate-800">رأيك يهمنا جداً! ⭐</h2>
-            <p class="text-slate-500 mt-2 text-sm">كيف كانت تجربتك معنا اليوم؟</p>
+            <h2 class="text-2xl font-black text-slate-800 tracking-wide">رأيك يهمنا جداً! ⭐</h2>
+            <p class="text-slate-500 mt-2 text-xs font-medium">كيف كانت تجربتك معنا اليوم؟ اختر التقييم المناسب:</p>
         </div>
 
-        <!-- اختيار النجوم -->
-        <div id="stars-container" class="flex justify-center space-x-2 space-x-reverse text-4xl cursor-pointer py-2">
-            <span onclick="rate(1)" class="hover:scale-125 transition">⭐</span>
-            <span onclick="rate(2)" class="hover:scale-125 transition">⭐</span>
-            <span onclick="rate(3)" class="hover:scale-125 transition">⭐</span>
-            <span onclick="rate(4)" class="hover:scale-125 transition">⭐</span>
-            <span onclick="rate(5)" class="hover:scale-125 transition">⭐</span>
+        <!-- نظام النجوم المصمم بوضوح عالي (High-Visibility Stars) -->
+        <div id="stars-container" class="space-y-3 py-2">
+            <div class="flex justify-between items-center max-w-xs mx-auto text-3xl sm:text-4xl cursor-pointer dir-ltr">
+                <button onclick="rate(1)" class="star-btn focus:outline-none p-1" title="سيء جداً">⭐</button>
+                <button onclick="rate(2)" class="star-btn focus:outline-none p-1" title="سيء">⭐</button>
+                <button onclick="rate(3)" class="star-btn focus:outline-none p-1" title="مقبول">⭐</button>
+                <button onclick="rate(4)" class="star-btn focus:outline-none p-1" title="جيد جداً">⭐</button>
+                <button onclick="rate(5)" class="star-btn focus:outline-none p-1" title="ممتاز">⭐</button>
+            </div>
+            <div class="flex justify-between max-w-xs mx-auto text-[10px] font-bold text-slate-400 px-1">
+                <span>1 - سيء</span>
+                <span>3 - متوسط</span>
+                <span>5 - ممتاز</span>
+            </div>
         </div>
 
         <!-- نموذج الشكاوى الداخلي -->
         <form id="complaint-form" onsubmit="submitComplaint(event)" class="hidden text-right space-y-4 pt-4 border-t">
-            <h3 class="font-bold text-rose-600 text-sm">نعتذر جداً عن أي تقصير! يرجى إخبارنا بما حدث لمعالجته فوراً:</h3>
+            <h3 class="font-bold text-rose-600 text-xs leading-relaxed">نعتذر جداً عن أي تقصير! يرجى إخبارنا بما حدث لمعالجته فوراً:</h3>
             
             <div>
-                <label class="text-xs text-slate-600 block mb-1">الاسم (اختياري)</label>
-                <input type="text" id="client-name" class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                <label class="text-[11px] text-slate-600 font-bold block mb-1">الاسم (اختياري)</label>
+                <input type="text" id="client-name" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 outline-none">
             </div>
 
             <div>
-                <label class="text-xs text-slate-600 block mb-1">رقم الهاتف (للتواصل ومعالجة الأمر)</label>
-                <input type="tel" id="client-phone" required class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                <label class="text-[11px] text-slate-600 font-bold block mb-1">رقم الهاتف (للتواصل ومعالجة الأمر)</label>
+                <input type="tel" id="client-phone" required class="w-full p-2.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 outline-none">
             </div>
 
             <div>
-                <label class="text-xs text-slate-600 block mb-1">تفاصيل المشكلة</label>
-                <textarea id="client-message" required rows="3" class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                <label class="text-[11px] text-slate-600 font-bold block mb-1">تفاصيل المشكلة</label>
+                <textarea id="client-message" required rows="3" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 outline-none"></textarea>
             </div>
 
-            <button type="submit" class="w-full bg-rose-600 text-white font-bold py-3 rounded-xl text-sm hover:bg-rose-700 transition shadow-md">إرسال للإدارة مباشرة</button>
+            <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">إرسال الشكوى للإدارة المباشرة</button>
         </form>
 
-        <!-- بطاقة المكافأة المتقدمة والتفاعلية (Interactive Reward Card) -->
-        <div id="reward-box" class="hidden space-y-5">
+        <!-- بطاقة الكوبون الفاخرة (Styled Gift Voucher Card) -->
+        <div id="reward-box" class="hidden space-y-4">
             
-            <!-- البطاقة التي سيتم تصويرها وتحميلها -->
-            <div id="coupon-card" class="p-5 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 border-2 border-emerald-300 rounded-2xl space-y-3 shadow-sm relative overflow-hidden">
-                <div class="absolute -left-6 -top-6 bg-emerald-500 text-white text-[10px] font-bold px-8 py-2 rotate-[-45deg] shadow">هدية خاصة</div>
-                
-                <div class="text-3xl">🎉</div>
-                <h4 class="font-extrabold text-emerald-900 text-lg">شكراً لتقييمك الرائع!</h4>
-                <p class="text-xs text-slate-600 leading-relaxed font-medium">احصل على خصم 15% على زيارتك القادمة باستخدام الكود التالي:</p>
+            <div id="coupon-card" class="p-6 bg-gradient-to-tr from-amber-500 via-emerald-600 to-teal-700 text-white rounded-2xl space-y-3 shadow-xl relative overflow-hidden text-center border-2 border-amber-300">
+                <div class="text-4xl drop-shadow-md">🎁</div>
+                <h4 class="font-black text-lg text-amber-100 tracking-wide">بطاقة خصم خاصة</h4>
+                <p class="text-xs text-emerald-50 leading-relaxed font-medium">احصل على خصم <span class="font-black text-amber-200">15%</span> على زيارتك القادمة تقديرًا لوقتك معنا!</p>
 
-                <!-- كود قابل للنسخ بالنقر -->
-                <div onclick="copyCouponCode()" class="cursor-pointer bg-white border-2 border-dashed border-emerald-500 py-3 px-4 rounded-xl font-mono font-black text-2xl text-emerald-600 tracking-wider shadow-inner flex items-center justify-center gap-2 hover:bg-emerald-50 transition" title="انقر للنسخ">
-                    <span id="coupon-text">GIFT-15OFF</span>
-                    <span class="text-xs bg-emerald-100 text-emerald-700 font-sans font-bold px-2 py-0.5 rounded-md">نسخ 📋</span>
+                <div class="bg-white/95 backdrop-blur border-2 border-dashed border-amber-400 py-3 px-4 rounded-xl text-slate-900 font-mono font-black text-2xl tracking-widest shadow-inner">
+                    GIFT-15OFF
                 </div>
-                <p id="copy-toast" class="text-[11px] text-emerald-600 font-bold hidden">تم نسخ الكود للحافظة بنجاح! ✅</p>
+                <p class="text-[10px] text-emerald-100 opacity-90">يرجى إبراز الصورة للموظف عند الزيارة القادمة</p>
             </div>
 
-            <!-- أزرار الإجراءات الفائقة (Action Buttons) -->
-            <div class="space-y-2.5">
-                <!-- زر حفظ البطاقة كصورة -->
-                <button onclick="downloadCouponImage()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow flex items-center justify-center gap-2">
-                    <span>📸</span> حفظ الكوبون كصورة في الهاتف
-                </button>
+            <!-- زر التنزيل الوحيد والمباشر (Download & Proceed) -->
+            <button id="download-btn" onclick="downloadAndRedirect()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-4 rounded-2xl text-xs transition shadow-lg flex items-center justify-center gap-2">
+                <span>📸</span> تنزيل بطاقة الخصم واستلام الهدايا
+            </button>
 
-                <!-- زر التوجيه المؤكد والبارز لخرائط جوجل -->
-                <div id="google-btn-container" class="pt-1">
-                    <a id="google-review-btn" href="#" target="_blank" onclick="onReviewClicked()" class="pulse-btn inline-flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl text-sm transition shadow-lg">
-                        <span>⭐</span> اضغط هنا لكتابة تقييمك على خرائط جوجل
-                    </a>
-                </div>
-            </div>
+            <p id="download-status" class="text-[11px] font-bold text-emerald-600 hidden">جاري الحفظ والتوجيه... 🚀</p>
 
         </div>
 
