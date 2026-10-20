@@ -1,4 +1,5 @@
 const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbykMW4uXSm3daQuyEToMWKtorLxmp_ljmFWf5x4rnHeFqpsLuW3kmdGJAVKZsRsm2Js/exec";
+const SCRIPT_API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 let globalData = { logs: [], complaints: [] };
 let activePeriod = 'all';
 let selectedStarFilter = null;
@@ -11,7 +12,6 @@ async function loadData() {
     try {
         const res = await fetch(SCRIPT_API_URL);
         globalData = await res.json();
-        
         applyFiltersAndRender();
         makeColumnsResizable();
         if (updateBadge) updateBadge.innerText = "تحديث: " + new Date().toLocaleTimeString('ar-AE');
@@ -137,26 +137,17 @@ function extractStarsFromDetails(txt) {
 function isDateInPeriod(dateObj, period) {
     if (!dateObj || isNaN(dateObj.getTime())) return true;
     const now = new Date();
-    
-    if (period === 'today') {
-        return dateObj.toDateString() === now.toDateString();
-    } else if (period === 'week') {
-        const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        return dateObj >= oneWeekAgo;
-    } else if (period === 'month') {
-        return dateObj.getMonth() === now.getMonth() && dateObj.getFullYear() === now.getFullYear();
-    }
+    if (period === 'today') return dateObj.toDateString() === now.toDateString();
+    if (period === 'week') return dateObj >= new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    if (period === 'month') return dateObj.getMonth() === now.getMonth() && dateObj.getFullYear() === now.getFullYear();
     return true;
 }
 
-// دمج الجدولين في جدول موحد واحد
 function renderMasterTable(logs, complaints) {
     const tbody = document.getElementById('master-table-body');
     tbody.innerHTML = "";
-
     let combinedRows = [];
 
-    // معالجة بيانات اللوغ
     for (let i = 1; i < logs.length; i++) {
         const r = logs[i];
         const isPositive = r[1] && String(r[1]).includes("إيجابي");
@@ -168,37 +159,32 @@ function renderMasterTable(logs, complaints) {
             stars: r[6] || extractStarsFromDetails(r[3]) || (isPositive ? 5 : 3),
             clientName: '-',
             phone: '-',
-            employee: r[2] || 'عام',
             ip: r[7] || '0.0.0.0',
-            deviceId: r[4] || 'N/A',
+            phoneModel: r[5] || 'غير معروف',
             details: r[3] || '-'
         });
     }
 
-    // معالجة بيانات الشكاوى
     for (let i = 1; i < complaints.length; i++) {
         const r = complaints[i];
-        const starsNum = r[7] || 2;
         combinedRows.push({
             date: r[0] ? new Date(r[0]) : new Date(0),
             dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
             type: '🚨 شكوى داخلية',
             badgeClass: "bg-rose-100 text-rose-800 font-bold",
-            stars: starsNum,
+            stars: r[7] || 2,
             clientName: r[1] || 'غير محدد',
             phone: r[2] || '-',
-            employee: r[3] || 'عام',
             ip: r[8] || '0.0.0.0',
-            deviceId: r[5] || 'N/A',
+            phoneModel: r[6] || 'غير معروف',
             details: r[4] || '-'
         });
     }
 
-    // ترتيب السجلات تنازلياً حسب التاريخ الأحدث
     combinedRows.sort((a, b) => b.date - a.date);
 
     if (combinedRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">لا توجد بيانات مسجلة مطابقة للفلتر.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">لا توجد بيانات مسجلة.</td></tr>`;
         return;
     }
 
@@ -213,9 +199,8 @@ function renderMasterTable(logs, complaints) {
                 <td class="p-3.5 font-bold">${starVisual} (${row.stars}/5)</td>
                 <td class="p-3.5 font-bold text-slate-800">${row.clientName}</td>
                 <td class="p-3.5">${phoneLink}</td>
-                <td class="p-3.5 text-blue-600 font-medium">${row.employee}</td>
-                <td class="p-3.5 font-mono text-slate-600">${row.ip}</td>
-                <td class="p-3.5 font-mono text-purple-600">${row.deviceId}</td>
+                <td class="p-3.5 font-mono text-blue-600 font-bold">${row.ip}</td>
+                <td class="p-3.5 text-slate-700 font-medium">${row.phoneModel}</td>
                 <td class="p-3.5 text-slate-800 font-semibold leading-relaxed">${row.details}</td>
             </tr>
         `;
@@ -244,45 +229,37 @@ function renderStarsChart(starsData) {
             plugins: { legend: { display: false } },
             onClick: (e, activeElements) => {
                 if (activeElements.length > 0) {
-                    const clickedIndex = activeElements[0].index;
-                    const starClicked = clickedIndex + 1;
-                    
-                    selectedStarFilter = starClicked;
-                    document.getElementById('star-filter-val').innerText = starClicked;
+                    selectedStarFilter = activeElements[0].index + 1;
+                    document.getElementById('star-filter-val').innerText = selectedStarFilter;
                     document.getElementById('active-star-badge').classList.remove('hidden');
                     document.getElementById('reset-star-filter').classList.remove('hidden');
-
                     applyFiltersAndRender();
                 }
             },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-                x: { grid: { display: false } }
-            }
+            scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
         }
     });
 }
 
 function exportToCSV() {
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += "Date,Type,Stars,Client Name,Phone,Employee,IP Address,Device ID,Details\n";
+    csvContent += "Date,Type,Stars,Client Name,Phone,IP Address,Phone Model,Details\n";
 
     const rawLogs = globalData.logs || [];
     for (let i = 1; i < rawLogs.length; i++) {
-        const r = rawLogs[i];
-        csvContent += `"${r[0]}","${r[1]}","${r[6] || ''}","-","-","${r[2]}","${r[7] || ''}","${r[4] || ''}","${r[3]}"\n`;
+        let r = rawLogs[i];
+        csvContent += `"${r[0]}","${r[1]}","${r[6] || ''}","-","-","${r[7] || ''}","${r[5] || ''}","${r[3]}"\n`;
     }
 
     const rawComp = globalData.complaints || [];
     for (let i = 1; i < rawComp.length; i++) {
-        const r = rawComp[i];
-        csvContent += `"${r[0]}","Complaint","${r[7] || 2}","${r[1]}","${r[2]}","${r[3]}","${r[8] || ''}","${r[5] || ''}","${r[4]}"\n`;
+        let r = rawComp[i];
+        csvContent += `"${r[0]}","Complaint","${r[7] || 2}","${r[1]}","${r[2]}","${r[8] || ''}","${r[6] || ''}","${r[4]}"\n`;
     }
 
-    const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Unified_Reviews_Report_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `Reviews_Report_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -293,20 +270,14 @@ function makeColumnsResizable() {
         table.querySelectorAll('th').forEach(col => {
             const resizer = col.querySelector('.resizer');
             if (!resizer) return;
-
             let x = 0, w = 0;
             resizer.addEventListener('mousedown', function (e) {
                 x = e.clientX;
                 w = parseInt(window.getComputedStyle(col).width, 10);
-
-                const mouseMoveHandler = (e) => col.style.width = `${w - (e.clientX - x)}px`;
-                const mouseUpHandler = () => {
-                    document.removeEventListener('mousemove', mouseMoveHandler);
-                    document.removeEventListener('mouseup', mouseUpHandler);
-                };
-
-                document.addEventListener('mousemove', mouseMoveHandler);
-                document.addEventListener('mouseup', mouseUpHandler);
+                const mm = (e) => col.style.width = `${w - (e.clientX - x)}px`;
+                const mu = () => { document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+                document.addEventListener('mousemove', mm);
+                document.addEventListener('mouseup', mu);
             });
         });
     });
