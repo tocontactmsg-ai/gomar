@@ -27,23 +27,46 @@ function rate(stars) {
     const deviceId = getDeviceId();
     const phoneType = getPhoneType();
 
+    document.getElementById('google-review-btn').href = GOOGLE_REVIEW_URL;
+
     if (stars >= 4) {
-        // تسجيل النجوم الإيجابية وتحويل العميل فقط
         sendLogToBackend("تقييم إيجابي", `تم اختيار ${stars} نجوم للموظف: ${employeeName}`, deviceId, phoneType);
         
         document.getElementById('stars-container').classList.add('hidden');
+        document.getElementById('main-header').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
-
-        setTimeout(() => {
-            window.location.href = GOOGLE_REVIEW_URL;
-        }, 2000);
     } else {
-        // إظهار نموذج الشكاوى للنجوم المنخفضة دون تحويل لجوجل
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('complaint-form').classList.remove('hidden');
         
         sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم للموظف: ${employeeName}`, deviceId, phoneType);
     }
+}
+
+// نسخ كود الكوبون بنقرة واحدة
+function copyCouponCode() {
+    const code = document.getElementById('coupon-text').innerText;
+    navigator.clipboard.writeText(code).then(() => {
+        const toast = document.getElementById('copy-toast');
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+    });
+}
+
+// تحميل بطاقة الكوبون كصورة في جهاز العميل
+function downloadCouponImage() {
+    const card = document.getElementById('coupon-card');
+    html2canvas(card).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'my-discount-coupon.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+}
+
+// تسجيل النقر على زر التقييم لتوثيق أن العميل انتقل لخرائط جوجل بالفعل
+function onReviewClicked() {
+    sendLogToBackend("انتقال لصفحة جوجل", `قام العميل بالنقر على زر التقييم للموظف: ${employeeName}`, getDeviceId(), getPhoneType());
 }
 
 async function submitComplaint(event) {
@@ -73,6 +96,9 @@ async function submitComplaint(event) {
         });
 
         document.getElementById('complaint-form').classList.add('hidden');
+        document.getElementById('main-header').classList.add('hidden');
+        
+        document.getElementById('google-btn-container').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
     } catch (err) {
         alert("حدث خطأ في الإرسال، يرجى المحاولة مرة أخرى.");
