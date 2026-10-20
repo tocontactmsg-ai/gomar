@@ -1,4 +1,4 @@
-const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwsH2CA0nla_YuK0tSkWzHEuJJYIRhx-p-Dcgu4iXTbnhL8P5xjGS3pei3L6KqVCUR2/exec";
+const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbykMW4uXSm3daQuyEToMWKtorLxmp_ljmFWf5x4rnHeFqpsLuW3kmdGJAVKZsRsm2Js/exec";
 let globalData = { logs: [], complaints: [] };
 let activePeriod = 'all';
 let selectedStarFilter = null;
