@@ -1,4 +1,4 @@
-const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbznQ-8paK314Sw74hUI4BP92DdyHR-ysDMp2Yn7YPuHZPXRDuQrC_6lroj5ttGARKZh/exec";
+const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzpuQpdA5_ygYUt8jBQBDf8e2T-GwFjdoRC7vrtPFppwRANCyhiE3tQ4AsVihfWaxY3/exec";
 let chartInstance = null;
 
 async function loadData() {
