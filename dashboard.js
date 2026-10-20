@@ -1,5 +1,5 @@
 const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbykMW4uXSm3daQuyEToMWKtorLxmp_ljmFWf5x4rnHeFqpsLuW3kmdGJAVKZsRsm2Js/exec";
-const SCRIPT_API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+
 let globalData = { logs: [], complaints: [] };
 let activePeriod = 'all';
 let selectedStarFilter = null;
