@@ -1,5 +1,5 @@
-const SCRIPT_API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
-const GOOGLE_REVIEW_URL = "https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID";
+const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbznQ-8paK314Sw74hUI4BP92DdyHR-ysDMp2Yn7YPuHZPXRDuQrC_6lroj5ttGARKZh/exec";
+const GOOGLE_REVIEW_URL = "https://search.google.com/local/writereview?placeid=1o2a_BaSizRfy1pZeJqW0VBcM7EMm9i23vEXbG2QRxQ4";
 
 // قراءة بيانات الموظف من الرابط
 const urlParams = new URLSearchParams(window.location.search);
