@@ -1,9 +1,12 @@
 const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzpuQpdA5_ygYUt8jBQBDf8e2T-GwFjdoRC7vrtPFppwRANCyhiE3tQ4AsVihfWaxY3/exec";
 const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/%D9%85%D8%B3%D8%AC%D8%AF+%D8%A7%D9%84%D8%B3%D9%8A%D8%AF%D8%A9+%D8%AE%D8%AF%D9%8A%D8%AC%D8%A9+%D8%B1%D8%B6%D9%8A+%D8%A7%D9%84%D9%84%D9%87+%D8%B9%D9%86%D9%87%D8%A7%E2%80%AD/@25.2848258,55.6730083,13z/data=!4m6!3m5!1s0x3ef58d6a26c1ded7:0xf87a5958ff53f9e9!8m2!3d25.2848146!4d55.6436769!16s%2Fg%2F11tn70cps_?entry=ttu&g_ep=EgoyMDI2MTAxOC4wIKXMDSoASAFQAw%3D%3D";
 
+
 const urlParams = new URLSearchParams(window.location.search);
 const employeeId = urlParams.get('emp') || 'عام';
 const employeeName = urlParams.get('name') || 'موظف عام';
+
+let isHighReview = false; // متغير لمعرفة نوع التقييم
 
 function getDeviceId() {
     let devId = localStorage.getItem('user_unique_id');
@@ -27,15 +30,15 @@ function rate(stars) {
     const deviceId = getDeviceId();
     const phoneType = getPhoneType();
 
-    document.getElementById('google-review-btn').href = GOOGLE_REVIEW_URL;
-
     if (stars >= 4) {
+        isHighReview = true; // تحديد التقييم كمرتفع
         sendLogToBackend("تقييم إيجابي", `تم اختيار ${stars} نجوم للموظف: ${employeeName}`, deviceId, phoneType);
         
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('main-header').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
     } else {
+        isHighReview = false; // تقييم منخفض
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('complaint-form').classList.remove('hidden');
         
@@ -43,30 +46,35 @@ function rate(stars) {
     }
 }
 
-// نسخ كود الكوبون بنقرة واحدة
-function copyCouponCode() {
-    const code = document.getElementById('coupon-text').innerText;
-    navigator.clipboard.writeText(code).then(() => {
-        const toast = document.getElementById('copy-toast');
-        toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 3000);
-    });
-}
-
-// تحميل بطاقة الكوبون كصورة في جهاز العميل
-function downloadCouponImage() {
+// دالة تنزيل الكوبون والتحويل المشروط لخرائط جوجل
+function downloadAndRedirect() {
     const card = document.getElementById('coupon-card');
-    html2canvas(card).then(canvas => {
+    const statusText = document.getElementById('download-status');
+    const btn = document.getElementById('download-btn');
+
+    btn.disabled = true;
+    statusText.classList.remove('hidden');
+
+    html2canvas(card, { scale: 2 }).then(canvas => {
+        // إنشاء رابط تنزيل الصورة
         const link = document.createElement('a');
-        link.download = 'my-discount-coupon.png';
+        link.download = 'Discount-Coupon.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
-    });
-}
 
-// تسجيل النقر على زر التقييم لتوثيق أن العميل انتقل لخرائط جوجل بالفعل
-function onReviewClicked() {
-    sendLogToBackend("انتقال لصفحة جوجل", `قام العميل بالنقر على زر التقييم للموظف: ${employeeName}`, getDeviceId(), getPhoneType());
+        // التوجيه الشرطي بعد إتمام التحميل
+        setTimeout(() => {
+            if (isHighReview) {
+                // تقييم مرتفع ⬅️ تحويل إلى خرائط جوجل
+                sendLogToBackend("انتقال لصفحة جوجل", `تم تحويل العميل لخرائط جوجل بعد تنزيل الكوبون للموظف: ${employeeName}`, getDeviceId(), getPhoneType());
+                window.location.href = GOOGLE_REVIEW_URL;
+            } else {
+                // تقييم منخفض ⬅️ عدم تحويل
+                statusText.innerText = "تم حفظ الكوبون بنجاح! شكراً لتعاونك معنا ✅";
+                btn.classList.add('hidden');
+            }
+        }, 1500);
+    });
 }
 
 async function submitComplaint(event) {
@@ -97,8 +105,6 @@ async function submitComplaint(event) {
 
         document.getElementById('complaint-form').classList.add('hidden');
         document.getElementById('main-header').classList.add('hidden');
-        
-        document.getElementById('google-btn-container').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
     } catch (err) {
         alert("حدث خطأ في الإرسال، يرجى المحاولة مرة أخرى.");
