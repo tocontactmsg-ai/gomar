@@ -1,16 +1,19 @@
 const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbznQ-8paK314Sw74hUI4BP92DdyHR-ysDMp2Yn7YPuHZPXRDuQrC_6lroj5ttGARKZh/exec";
-let globalData = { logs: [], complaints: [] };
 let chartInstance = null;
 
 async function loadData() {
+    const updateBadge = document.getElementById('last-update');
+    if (updateBadge) updateBadge.innerText = "جاري جلب البيانات... ⏳";
+
     try {
         const res = await fetch(SCRIPT_API_URL);
-        globalData = await res.json();
+        const data = await res.json();
         
-        renderDashboard(globalData);
-        document.getElementById('last-update').innerText = "تم التحديث: " + new Date().toLocaleTimeString('ar-AE');
+        renderDashboard(data);
+        if (updateBadge) updateBadge.innerText = "تم التحديث: " + new Date().toLocaleTimeString('ar-AE');
     } catch (e) {
         console.error("خطأ في جلب البيانات", e);
+        if (updateBadge) updateBadge.innerText = "خطأ في الاتصال بالسيرفر ❌";
     }
 }
 
@@ -19,28 +22,24 @@ function renderDashboard(data) {
     const complaints = data.complaints || [];
 
     const totalScans = Math.max(0, logs.length - 1);
-    const positiveCount = logs.filter(r => r[1] && r[1].includes("إيجابي")).length;
+    const positiveCount = logs.filter(r => r[1] && String(r[1]).includes("إيجابي")).length;
     const complaintsCount = Math.max(0, complaints.length - 1);
 
     document.getElementById('total-scans').innerText = totalScans;
     document.getElementById('total-positive').innerText = positiveCount;
     document.getElementById('total-complaints').innerText = complaintsCount;
 
-    // رسم البيانيات Visualisation
     renderChart(positiveCount, complaintsCount, Math.max(0, totalScans - positiveCount - complaintsCount));
-
-    // رندر جدول الشكاوى
     renderComplaintsTable(complaints);
-
-    // رندر سجل اللوغ
     renderLogTable(logs);
 }
 
 function renderComplaintsTable(complaints) {
     const compBody = document.getElementById('complaints-table');
     compBody.innerHTML = "";
-    if (complaints.length <= 1) {
-        compBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">لا توجد شكاوى مسجلة.</td></tr>`;
+    
+    if (!complaints || complaints.length <= 1) {
+        compBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">لا توجد شكاوى مسجلة حتى الآن.</td></tr>`;
         return;
     }
 
@@ -64,15 +63,16 @@ function renderComplaintsTable(complaints) {
 function renderLogTable(logs) {
     const logBody = document.getElementById('log-table');
     logBody.innerHTML = "";
-    if (logs.length <= 1) {
-        logBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">لا توجد سجلات.</td></tr>`;
+    
+    if (!logs || logs.length <= 1) {
+        logBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">لا توجد سجلات بعد.</td></tr>`;
         return;
     }
 
     for (let i = logs.length - 1; i >= 1; i--) {
         const r = logs[i];
         const dateStr = r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-';
-        const isPositive = r[1] && r[1].includes("إيجابي");
+        const isPositive = r[1] && String(r[1]).includes("إيجابي");
         const tagClass = isPositive ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700";
         
         logBody.innerHTML += `
@@ -91,20 +91,19 @@ function renderLogTable(logs) {
 function filterTables() {
     const q = document.getElementById('search-input').value.toLowerCase();
     
-    // فلترة الجداول
-    const compRows = document.querySelectorAll('#complaints-table tr');
-    compRows.forEach(row => {
+    document.querySelectorAll('#complaints-table tr').forEach(row => {
         row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
     });
 
-    const logRows = document.querySelectorAll('#log-table tr');
-    logRows.forEach(row => {
+    document.querySelectorAll('#log-table tr').forEach(row => {
         row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
     });
 }
 
 function renderChart(positive, complaints, others) {
-    const ctx = document.getElementById('analyticsChart').getContext('2d');
+    const canvas = document.getElementById('analyticsChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
     chartInstance = new Chart(ctx, {
@@ -125,5 +124,6 @@ function renderChart(positive, complaints, others) {
     });
 }
 
-setInterval(loadData, 20000);
+// تحديث تلقائي كل 30 ثانية
+setInterval(loadData, 30000);
 loadData();
