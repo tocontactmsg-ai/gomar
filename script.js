@@ -1,4 +1,4 @@
-const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzpuQpdA5_ygYUt8jBQBDf8e2T-GwFjdoRC7vrtPFppwRANCyhiE3tQ4AsVihfWaxY3/exec";
+const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwsH2CA0nla_YuK0tSkWzHEuJJYIRhx-p-Dcgu4iXTbnhL8P5xjGS3pei3L6KqVCUR2/exec";
 const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/%D9%85%D8%B3%D8%AC%D8%AF+%D8%A7%D9%84%D8%B3%D9%8A%D8%AF%D8%A9+%D8%AE%D8%AF%D9%8A%D8%AC%D8%A9+%D8%B1%D8%B6%D9%8A+%D8%A7%D9%84%D9%84%D9%87+%D8%B9%D9%86%D9%87%D8%A7%E2%80%AD/@25.2848258,55.6730083,13z/data=!4m6!3m5!1s0x3ef58d6a26c1ded7:0xf87a5958ff53f9e9!8m2!3d25.2848146!4d55.6436769!16s%2Fg%2F11tn70cps_?entry=ttu&g_ep=EgoyMDI2MTAxOC4wIKXMDSoASAFQAw%3D%3D";
 
 
