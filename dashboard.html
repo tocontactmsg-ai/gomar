@@ -1,5 +1,23 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+    <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم المحمية</title>
+    <script>
+        (function() {
+            const correctPassword = "1234"; // 🔐 ضع كلمة المرور الخاصة بك هنا
+            const userPass = prompt("الرجاء إدخال كلمة المرور للوصول إلى لوحة التحكم:");
+            if (userPass !== correctPassword) {
+                alert("كلمة المرور غير صحيحة!");
+                window.location.href = "https://www.google.com";
+                throw new Error("Access Denied");
+            }
+        })();
+    </script>
+    <!-- باقي أكواد الـ HTML والتصميم الخاصة بك هنا -->
+</head>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
