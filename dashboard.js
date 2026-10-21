@@ -53,7 +53,7 @@ function applyFiltersAndRender() {
     let totalRatedItems = 0;
 
     filteredLogs.slice(1).forEach(r => {
-        let stars = parseInt(r[5]) || extractStarsFromText(r[2]) || 0;
+        let stars = parseInt(r[5]) || 0;
         if (stars >= 1 && stars <= 5) {
             starsCount[stars]++;
             totalStarsSum += stars;
@@ -71,12 +71,12 @@ function applyFiltersAndRender() {
     });
 
     if (selectedStarFilter !== null) {
-        filteredLogs = filteredLogs.filter((r, idx) => idx === 0 || (parseInt(r[5]) || extractStarsFromText(r[2]) || 0) === selectedStarFilter);
+        filteredLogs = filteredLogs.filter((r, idx) => idx === 0 || (parseInt(r[5]) || 0) === selectedStarFilter);
         filteredComplaints = filteredComplaints.filter((r, idx) => idx === 0 || (parseInt(r[6]) || 2) === selectedStarFilter);
     }
 
     const totalScans = Math.max(0, filteredLogs.length - 1);
-    const positiveCount = filteredLogs.filter(r => r[1] && String(r[1]).includes("إيجابي")).length;
+    const positiveCount = filteredLogs.filter(r => r[1] && String(r[1]).includes("التوجيه لجوجل")).length;
     const complaintsCount = Math.max(0, filteredComplaints.length - 1);
     const avgStars = totalRatedItems > 0 ? (totalStarsSum / totalRatedItems).toFixed(1) : "0.0";
 
@@ -87,12 +87,6 @@ function applyFiltersAndRender() {
 
     renderStarsChart(starsCount);
     renderMasterTable(filteredLogs, filteredComplaints);
-}
-
-function extractStarsFromText(txt) {
-    if (!txt) return 0;
-    let match = String(txt).match(/(\d)\s*نجوم/);
-    return match ? parseInt(match[1]) : 0;
 }
 
 function isDateInPeriod(dateObj, period) {
@@ -110,24 +104,23 @@ function renderMasterTable(logs, complaints) {
     tbody.innerHTML = "";
     let combinedRows = [];
 
-    // معالجة السجلات (Logs) مع استخراج الكود والمعرّف بغض النظر عن مكان العمود في الصف
+    // قراءة السجلات (Logs)
     for (let i = 1; i < logs.length; i++) {
         const r = logs[i];
         if (!r || r.length === 0) continue;
-        const isPositive = r[1] && String(r[1]).includes("إيجابي");
         
-        // البحث الديناميكي داخل الصف عن أي قيمة تبدأ بـ VIP أو SRV أو INP أو UID لضمان عدم ضياعها
+        let foundUid = r.find(val => String(val).startsWith('UID-')) || r[4] || 'غير معروف';
         let foundCoupon = r.find(val => String(val).startsWith('VIP') || String(val).startsWith('SRV')) || r[7] || '-';
-        let foundInputId = r.find(val => String(val).startsWith('INP') || String(val).startsWith('UID')) || r[8] || '-';
+        let foundStatus = r.find(val => String(val).includes('التوجيه') || String(val).includes('جوجل')) || r[1] || 'نشاط';
 
         combinedRows.push({
             date: r[0] ? new Date(r[0]) : new Date(0),
             dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
-            type: r[1] || 'نشاط',
-            badgeClass: isPositive ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800",
-            stars: parseInt(r[5]) || extractStarsFromText(r[2]) || (isPositive ? 5 : 3),
+            type: foundStatus,
+            badgeClass: String(foundStatus).includes("نجاح") || String(foundStatus).includes("✅") ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800",
+            stars: parseInt(r[5]) || 5,
             couponRef: foundCoupon,
-            inputId: foundInputId,
+            uid: foundUid,
             clientName: '-',
             phone: '-',
             ip: r[6] || '0.0.0.0',
@@ -135,13 +128,13 @@ function renderMasterTable(logs, complaints) {
         });
     }
 
-    // معالجة الشكاوى (Complaints)
+    // قراءة الشكاوى (Complaints)
     for (let i = 1; i < complaints.length; i++) {
         const r = complaints[i];
         if (!r || r.length === 0) continue;
 
+        let foundUid = r.find(val => String(val).startsWith('UID-')) || r[5] || 'غير معروف';
         let foundCoupon = r.find(val => String(val).startsWith('VIP') || String(val).startsWith('SRV')) || r[8] || '-';
-        let foundInputId = r.find(val => String(val).startsWith('INP') || String(val).startsWith('UID')) || r[9] || '-';
 
         combinedRows.push({
             date: r[0] ? new Date(r[0]) : new Date(0),
@@ -150,7 +143,7 @@ function renderMasterTable(logs, complaints) {
             badgeClass: "bg-rose-100 text-rose-800 font-bold",
             stars: parseInt(r[6]) || 2,
             couponRef: foundCoupon,
-            inputId: foundInputId,
+            uid: foundUid,
             clientName: r[1] || 'غير محدد',
             phone: r[2] || '-',
             ip: r[7] || '0.0.0.0',
@@ -176,7 +169,7 @@ function renderMasterTable(logs, complaints) {
                 <td class="p-3.5 font-bold">${starVisual} (${row.stars}/5)</td>
                 <td class="p-3.5 font-mono font-black text-blue-700 bg-blue-50/60 rounded-xl">
                     <div>${row.couponRef}</div>
-                    <div class="text-[9px] text-slate-500 font-bold mt-0.5">UID: ${row.inputId}</div>
+                    <div class="text-[9px] text-slate-500 font-bold mt-0.5">UID: ${row.uid}</div>
                 </td>
                 <td class="p-3.5 font-bold text-slate-800">${row.clientName}</td>
                 <td class="p-3.5">${phoneLink}</td>
@@ -223,18 +216,18 @@ function renderStarsChart(starsData) {
 
 function exportToCSV() {
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += "Date,Type,Stars,Coupon Ref,Input ID,Client Name,Phone,IP Address,Details\n";
+    csvContent += "Date,Type,Stars,Coupon Ref,UID,Client Name,Phone,IP Address,Details\n";
 
     const rawLogs = globalData.logs || [];
     for (let i = 1; i < rawLogs.length; i++) {
         let r = rawLogs[i];
-        csvContent += `"${r[0]}","${r[1]}","${r[5] || ''}","${r[7] || ''}","${r[8] || ''}","-","-","${r[6] || ''}","${r[2]}"\n`;
+        csvContent += `"${r[0]}","${r[1]}","${r[5] || ''}","${r[7] || ''}","${r[4] || ''}","-","-","${r[6] || ''}","${r[2]}"\n`;
     }
 
     const rawComp = globalData.complaints || [];
     for (let i = 1; i < rawComp.length; i++) {
         let r = rawComp[i];
-        csvContent += `"${r[0]}","Complaint","${r[6] || 2}","${r[8] || ''}","${r[9] || ''}","${r[1]}","${r[2]}","${r[7] || ''}","${r[3]}"\n`;
+        csvContent += `"${r[0]}","Complaint","${r[6] || 2}","${r[8] || ''}","${r[5] || ''}","${r[1]}","${r[2]}","${r[7] || ''}","${r[3]}"\n`;
     }
 
     const link = document.createElement("a");
