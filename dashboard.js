@@ -110,15 +110,15 @@ function renderMasterTable(logs, complaints) {
     tbody.innerHTML = "";
     let combinedRows = [];
 
-    // معالجة سجَلات التفاعلات (Logs)
+    // معالجة السجلات (Logs) مع استخراج الكود والمعرّف بغض النظر عن مكان العمود في الصف
     for (let i = 1; i < logs.length; i++) {
         const r = logs[i];
         if (!r || r.length === 0) continue;
         const isPositive = r[1] && String(r[1]).includes("إيجابي");
         
-        // قراءة البيانات بالترتيب المرن للحماية من اختلاف طول الأعمدة
-        const couponRefVal = r[7] || (r.length > 7 ? r[7] : '-');
-        const inputIdVal = r[8] || (r.length > 8 ? r[8] : '-');
+        // البحث الديناميكي داخل الصف عن أي قيمة تبدأ بـ VIP أو SRV أو INP أو UID لضمان عدم ضياعها
+        let foundCoupon = r.find(val => String(val).startsWith('VIP') || String(val).startsWith('SRV')) || r[7] || '-';
+        let foundInputId = r.find(val => String(val).startsWith('INP') || String(val).startsWith('UID')) || r[8] || '-';
 
         combinedRows.push({
             date: r[0] ? new Date(r[0]) : new Date(0),
@@ -126,8 +126,8 @@ function renderMasterTable(logs, complaints) {
             type: r[1] || 'نشاط',
             badgeClass: isPositive ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800",
             stars: parseInt(r[5]) || extractStarsFromText(r[2]) || (isPositive ? 5 : 3),
-            couponRef: couponRefVal,
-            inputId: inputIdVal,
+            couponRef: foundCoupon,
+            inputId: foundInputId,
             clientName: '-',
             phone: '-',
             ip: r[6] || '0.0.0.0',
@@ -135,13 +135,13 @@ function renderMasterTable(logs, complaints) {
         });
     }
 
-    // معالجة سجلات الشكاوى (Complaints)
+    // معالجة الشكاوى (Complaints)
     for (let i = 1; i < complaints.length; i++) {
         const r = complaints[i];
         if (!r || r.length === 0) continue;
 
-        const couponRefVal = r[8] || (r.length > 8 ? r[8] : '-');
-        const inputIdVal = r[9] || (r.length > 9 ? r[9] : '-');
+        let foundCoupon = r.find(val => String(val).startsWith('VIP') || String(val).startsWith('SRV')) || r[8] || '-';
+        let foundInputId = r.find(val => String(val).startsWith('INP') || String(val).startsWith('UID')) || r[9] || '-';
 
         combinedRows.push({
             date: r[0] ? new Date(r[0]) : new Date(0),
@@ -149,8 +149,8 @@ function renderMasterTable(logs, complaints) {
             type: '🚨 شكوى داخلية',
             badgeClass: "bg-rose-100 text-rose-800 font-bold",
             stars: parseInt(r[6]) || 2,
-            couponRef: couponRefVal,
-            inputId: inputIdVal,
+            couponRef: foundCoupon,
+            inputId: foundInputId,
             clientName: r[1] || 'غير محدد',
             phone: r[2] || '-',
             ip: r[7] || '0.0.0.0',
@@ -158,7 +158,6 @@ function renderMasterTable(logs, complaints) {
         });
     }
 
-    // ترتيب البيانات من الأحدث إلى الأقدم
     combinedRows.sort((a, b) => b.date - a.date);
 
     if (combinedRows.length === 0) {
@@ -177,7 +176,7 @@ function renderMasterTable(logs, complaints) {
                 <td class="p-3.5 font-bold">${starVisual} (${row.stars}/5)</td>
                 <td class="p-3.5 font-mono font-black text-blue-700 bg-blue-50/60 rounded-xl">
                     <div>${row.couponRef}</div>
-                    <div class="text-[9px] text-slate-400 font-normal mt-0.5">${row.inputId}</div>
+                    <div class="text-[9px] text-slate-500 font-bold mt-0.5">UID: ${row.inputId}</div>
                 </td>
                 <td class="p-3.5 font-bold text-slate-800">${row.clientName}</td>
                 <td class="p-3.5">${phoneLink}</td>
@@ -271,5 +270,5 @@ function filterTables() {
     });
 }
 
-setInterval(loadData, 15000); // تحديث تلقائي كل 15 ثانية
+setInterval(loadData, 15000);
 loadData();
