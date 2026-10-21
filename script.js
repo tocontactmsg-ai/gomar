@@ -28,28 +28,53 @@ function getDeviceId() {
     }
     return devId;
 }
-
+// دالة ذكية ومحدثة لجلب نوع وطراز الهاتف/الكمبيوتر بدقة عالية
 function getPhoneDetails() {
     const ua = navigator.userAgent;
+
+    // 1. فحص أجهزة أبل (iOS / Mac)
     if (/iPhone/i.test(ua)) return "iPhone";
     if (/iPad/i.test(ua)) return "iPad";
-    if (/Android/i.test(ua)) {
-        let match = ua.match(/Android\s+[\d\.]+;\s*([^;]+)\s*Build/i) || ua.match(/Android\s+[\d\.]+;\s*([^;\)]+)/i);
-        if (match && match[1]) {
-            let model = match[1].trim();
-            if (/Samsung|SM-/i.test(model)) return "سامسونج (" + model + ")";
-            if (/Xiaomi|Redmi|POCO/i.test(model)) return "شاومي (" + model + ")";
-            if (/Huawei|HONOR/i.test(model)) return "هواوي/هونر (" + model + ")";
-            if (/Pixel/i.test(model)) return "جوجل بكسل (" + model + ")";
-            return "أندرويد (" + model + ")";
-        }
-        return "هاتف أندرويد";
-    }
-    if (/Macintosh/i.test(ua)) return "كمبيوتر Mac";
-    if (/Windows/i.test(ua)) return "كمبيوتر Windows";
-    return "متصفح آخر";
-}
+    if (/Macintosh|Mac OS X/i.test(ua)) return "كمبيوتر Mac";
 
+    // 2. فحص أجهزة أندرويد واستخراج الطراز بدقة
+    if (/Android/i.test(ua)) {
+        // محاولة استخراج اسم الموديل المكتوب في الـ UserAgent
+        let modelMatch = ua.match(/Android\s+[\d\.]+;\s*([^;\)]+)/i);
+        let model = modelMatch && modelMatch[1] ? modelMatch[1].trim() : "";
+
+        // تنظيف النص وتوضيح الشركة والموديل
+        if (/SM-|Samsung/i.test(ua) || /SM-/i.test(model)) {
+            return "سامسونج (" + (model.replace(/Build.*/i, '').trim() || "Galaxy") + ")";
+        }
+        if (/Redmi|Xiaomi|POCO|Mi/i.test(ua)) {
+            return "شاومي/ريدمي (" + (model.replace(/Build.*/i, '').trim() || "Redmi") + ")";
+        }
+        if (/HUAWEI|HONOR|VOG-|ELE-|ALN-/i.test(ua)) {
+            return "هواوي/هونر (" + (model.replace(/Build.*/i, '').trim() || "Huawei") + ")";
+        }
+        if (/Pixel/i.test(ua)) {
+            return "جوجل بكسل (" + (model.replace(/Build.*/i, '').trim() || "Pixel") + ")";
+        }
+        if (/OPPO|CPH/i.test(ua)) {
+            return "أوبو (" + (model.replace(/Build.*/i, '').trim() || "OPPO") + ")";
+        }
+        if (/Realme|RMX/i.test(ua)) {
+            return "ريلمي (" + (model.replace(/Build.*/i, '').trim() || "Realme") + ")";
+        }
+        if (/OnePlus|DN2103|NE2213/i.test(ua)) {
+            return "ون بلس";
+        }
+        
+        return model ? "أندرويد (" + model.replace(/Build.*/i, '').trim() + ")" : "هاتف أندرويد";
+    }
+
+    // 3. فحص أجهزة أسطح المكتب (Windows / Linux)
+    if (/Windows NT/i.test(ua)) return "كمبيوتر Windows";
+    if (/Linux/i.test(ua)) return "كمبيوتر Linux";
+
+    return "جهاز غير معروف";
+}
 let isHighReview = false;
 
 function rate(stars) {
