@@ -1,5 +1,5 @@
 const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbx2hiiDXpkCTOqPE2-LQF7c0rd7bWDG7y4LJJ3ku8auC-LW0Wha2aET4vEXL6ZBopdZ/exec";
-const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/%D9%85%D8%B3%D8%AC%D8%AF+%D8%A7%D9%84%D8%B3%D9%8A%D8%AF%D8%A9+%D8%AE%D8%AF%D9%8A%D8%AC%D8%A9+%D8%B1%D8%B6%D9%8A+%D8%A7%D9%84%D9%84%D9%87+%D8%B9%D9%86%D9%87%D8%A7%E2%80%AD/@25.2848258,55.6730083,13z/data=!4m6!3m5!1s0x3ef58d6a26c1ded7:0xf87a5958ff53f9e9!8m2!3d25.2848146!4d55.6436769!16s%2Fg%2F11tn70cps_?entry=ttu&g_ep=EgoyMDI2MTAxOC4wIKXMDSoASAFQAw%3D%3D";
+const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/%D9%85%D8%B3%D8%AC%D8%AF+%D8%A7%D9%84%D8%B3%D9%8A%D8%AF%D8%A9+%D8%AE%D8%AF%D9%8A%D8%AC%D8%A9+%D8%B1%D8%B6%D9%8ي+%D8%A7%D9%84%D9%84%D9%87+%D8%B9%D9%86%D9%87%D8%A7%E2%80%AD/@25.2848258,55.6730083,13z/data=!4m6!3m5!1s0x3ef58d6a26c1ded7:0xf87a5958ff53f9e9!8m2!3d25.2848146!4d55.6436769!16s%2Fg%2F11tn70cps_?entry=ttu&g_ep=EgoyMDI2MTAxOC4wIKXMDSoASAFQAw%3D%3D";
 
 let userIpAddress = "جاري الجلب...";
 
@@ -42,6 +42,7 @@ function generateUniqueCouponRef(isPositive) {
     return `${prefix}-${randomNum}-${timeCode}`;
 }
 
+// دالة البصمة الفريدة الحقيقية للعميل (تمنع ظهور UID: -)
 function getUniqueFingerprint() {
     let fingerprint = localStorage.getItem('unique_client_fp');
     if (!fingerprint) {
@@ -51,10 +52,6 @@ function getUniqueFingerprint() {
         localStorage.setItem('unique_client_fp', fingerprint);
     }
     return fingerprint;
-}
-
-function getDeviceTypeAndModel() {
-    return `زائر رقمي [${getUniqueFingerprint()}]`;
 }
 
 let isHighReview = false;
@@ -73,7 +70,6 @@ function customizeCard(stars) {
     currentCouponRef = generateUniqueCouponRef(isHighReview);
     codeBox.innerText = currentCouponRef;
 
-    // طباعة الوقت الفعلي للإصدار
     const now = new Date();
     timestampBox.innerText = now.toLocaleString('ar-AE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -87,27 +83,28 @@ function customizeCard(stars) {
         card.className = "p-6 bg-gradient-to-tr from-slate-700 via-slate-800 to-slate-900 text-white rounded-2xl space-y-3 shadow-xl relative overflow-hidden text-center border-2 border-slate-500";
         icon.innerText = "🛡️";
         title.innerText = "إيصال متابعة الشكوى والاهتمام";
-        desc.innerHTML = `تم تسجيل ملاحظتك بعناية فائقة. رقم مرجع المتابعة الخاصة بك هو ما يضمن اهتمام الإدارة الفوري.`;
+        desc.innerHTML = `تم تسجيل ملاحظتك بعناية فائقة. رقم مرجع المتابعة الخاص بك يضمن اهتمام الإدارة الفوري.`;
         btn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 px-4 rounded-2xl text-xs transition shadow-lg flex items-center justify-center gap-2";
     }
 }
 
 function rate(stars) {
     const deviceId = getDeviceId();
-    const phoneModel = getDeviceTypeAndModel();
+    const uid = getUniqueFingerprint();
     const inputId = generateUniqueInputId();
 
     customizeCard(stars);
 
     if (stars >= 4) {
-        sendLogToBackend("تقييم إيجابي", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars, currentCouponRef, inputId);
+        // تسجيل التقييم الإيجابي مع حالة التوجيه المعلقة
+        sendLogToBackend("تقييم إيجابي (بانتظار التوجيه)", `تم اختيار ${stars} نجوم`, deviceId, uid, stars, currentCouponRef, inputId, "قيد التوجيه لجوجل ⏳");
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('main-header').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
     } else {
+        sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم`, deviceId, uid, stars, currentCouponRef, inputId, "شكوى داخلية 🚨");
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('complaint-form').classList.remove('hidden');
-        sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars, currentCouponRef, inputId);
     }
 }
 
@@ -116,6 +113,7 @@ function downloadAndRedirect() {
     const statusText = document.getElementById('download-status');
     const btn = document.getElementById('download-btn');
     const inputId = generateUniqueInputId();
+    const uid = getUniqueFingerprint();
 
     btn.disabled = true;
     statusText.classList.remove('hidden');
@@ -128,7 +126,8 @@ function downloadAndRedirect() {
 
         setTimeout(() => {
             if (isHighReview) {
-                sendLogToBackend("انتقال لصفحة جوجل", `تم التوجيه لخرائط جوجل | كود: ${currentCouponRef}`, getDeviceId(), getDeviceTypeAndModel(), 5, currentCouponRef, inputId);
+                // إرسال تأكيد التوجيه الناجح لخرائط جوجل مع الـ UID الصحيح
+                sendLogToBackend("تم التوجيه لجوجل بنجاح 🚀", `تم تحميل الكوبون والانتقال لخرائط جوجل`, getDeviceId(), uid, 5, currentCouponRef, inputId, "تم التوجيه لخرائط جوجل ✅");
                 window.location.href = GOOGLE_REVIEW_URL;
             } else {
                 statusText.innerText = "تم حفظ مرجع المتابعة بنجاح! سنتواصل معك قريباً ✅";
@@ -144,6 +143,7 @@ async function submitComplaint(event) {
     const phone = document.getElementById('client-phone').value;
     const message = document.getElementById('client-message').value;
     const inputId = generateUniqueInputId();
+    const uid = getUniqueFingerprint();
 
     const payload = {
         type: "complaint",
@@ -151,11 +151,12 @@ async function submitComplaint(event) {
         phone: phone,
         message: message,
         deviceId: getDeviceId(),
-        phoneModel: getDeviceTypeAndModel(),
+        phoneModel: uid,
         stars: 2,
         userIp: userIpAddress,
         couponRef: currentCouponRef,
-        inputId: inputId
+        inputId: inputId,
+        redirectStatus: "شكوى مرسلة للاستقبال 📋"
     };
 
     try {
@@ -173,7 +174,7 @@ async function submitComplaint(event) {
     }
 }
 
-function sendLogToBackend(action, details, deviceId, phoneModel, stars, couponRef, inputId) {
+function sendLogToBackend(action, details, deviceId, uid, stars, couponRef, inputId, redirectStatus) {
     fetch(SCRIPT_API_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -183,11 +184,12 @@ function sendLogToBackend(action, details, deviceId, phoneModel, stars, couponRe
             action: action,
             details: details,
             deviceId: deviceId,
-            phoneModel: phoneModel,
+            phoneModel: uid, // تمرير البصمة الفريدة UID الصحيحة
             stars: stars || 0,
             userIp: userIpAddress,
             couponRef: couponRef || "-",
-            inputId: inputId || generateUniqueInputId()
+            inputId: inputId || generateUniqueInputId(),
+            redirectStatus: redirectStatus || "-"
         })
     });
 }
