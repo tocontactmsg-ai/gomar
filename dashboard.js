@@ -76,7 +76,7 @@ function applyFiltersAndRender() {
     }
 
     const totalScans = Math.max(0, filteredLogs.length - 1);
-    const positiveCount = filteredLogs.filter(r => r[1] && String(r[1]).includes("التوجيه لجوجل")).length;
+    const positiveCount = filteredLogs.filter(r => r.some(cell => String(cell).includes("التوجيه"))).length;
     const complaintsCount = Math.max(0, filteredComplaints.length - 1);
     const avgStars = totalRatedItems > 0 ? (totalStarsSum / totalRatedItems).toFixed(1) : "0.0";
 
@@ -104,37 +104,38 @@ function renderMasterTable(logs, complaints) {
     tbody.innerHTML = "";
     let combinedRows = [];
 
-    // قراءة السجلات (Logs)
+    // فحص وتحليل السجلات (Logs) ديناميكياً
     for (let i = 1; i < logs.length; i++) {
         const r = logs[i];
         if (!r || r.length === 0) continue;
         
-        let foundUid = r.find(val => String(val).startsWith('UID-')) || r[4] || 'غير معروف';
-        let foundCoupon = r.find(val => String(val).startsWith('VIP') || String(val).startsWith('SRV')) || r[7] || '-';
-        let foundStatus = r.find(val => String(val).includes('التوجيه') || String(val).includes('جوجل')) || r[1] || 'نشاط';
+        // البحث في أي عمود بالصف عن نص يتضمن UID- أو يبدو كبصمة
+        let foundUid = r.find(cell => String(cell).includes('UID-')) || '-';
+        let foundCoupon = r.find(cell => String(cell).startsWith('VIP') || String(cell).startsWith('SRV')) || '-';
+        let foundStatus = r.find(cell => String(cell).includes('التوجيه') || String(cell).includes('جوجل') || String(cell).includes('تقييم')) || r[1] || 'نشاط';
 
         combinedRows.push({
             date: r[0] ? new Date(r[0]) : new Date(0),
             dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
             type: foundStatus,
-            badgeClass: String(foundStatus).includes("نجاح") || String(foundStatus).includes("✅") ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800",
+            badgeClass: String(foundStatus).includes("نجاح") || String(foundStatus).includes("✅") || String(foundStatus).includes("التوجيه") ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800",
             stars: parseInt(r[5]) || 5,
             couponRef: foundCoupon,
             uid: foundUid,
             clientName: '-',
             phone: '-',
-            ip: r[6] || '0.0.0.0',
+            ip: r.find(cell => String(cell).match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) || '0.0.0.0',
             details: r[2] || '-'
         });
     }
 
-    // قراءة الشكاوى (Complaints)
+    // فحص وتحليل الشكاوى (Complaints) ديناميكياً
     for (let i = 1; i < complaints.length; i++) {
         const r = complaints[i];
         if (!r || r.length === 0) continue;
 
-        let foundUid = r.find(val => String(val).startsWith('UID-')) || r[5] || 'غير معروف';
-        let foundCoupon = r.find(val => String(val).startsWith('VIP') || String(val).startsWith('SRV')) || r[8] || '-';
+        let foundUid = r.find(cell => String(cell).includes('UID-')) || '-';
+        let foundCoupon = r.find(cell => String(cell).startsWith('VIP') || String(cell).startsWith('SRV')) || '-';
 
         combinedRows.push({
             date: r[0] ? new Date(r[0]) : new Date(0),
@@ -146,7 +147,7 @@ function renderMasterTable(logs, complaints) {
             uid: foundUid,
             clientName: r[1] || 'غير محدد',
             phone: r[2] || '-',
-            ip: r[7] || '0.0.0.0',
+            ip: r.find(cell => String(cell).match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) || '0.0.0.0',
             details: r[3] || '-'
         });
     }
@@ -222,12 +223,6 @@ function exportToCSV() {
     for (let i = 1; i < rawLogs.length; i++) {
         let r = rawLogs[i];
         csvContent += `"${r[0]}","${r[1]}","${r[5] || ''}","${r[7] || ''}","${r[4] || ''}","-","-","${r[6] || ''}","${r[2]}"\n`;
-    }
-
-    const rawComp = globalData.complaints || [];
-    for (let i = 1; i < rawComp.length; i++) {
-        let r = rawComp[i];
-        csvContent += `"${r[0]}","Complaint","${r[6] || 2}","${r[8] || ''}","${r[5] || ''}","${r[1]}","${r[2]}","${r[7] || ''}","${r[3]}"\n`;
     }
 
     const link = document.createElement("a");
