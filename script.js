@@ -20,6 +20,7 @@ async function fetchUserIP() {
 }
 fetchUserIP();
 
+// معرّف ثابت للجهاز كمرجع أساسي
 function getDeviceId() {
     let devId = localStorage.getItem('user_unique_id');
     if (!devId) {
@@ -28,24 +29,21 @@ function getDeviceId() {
     }
     return devId;
 }
-// دالة ذكية ومحدثة لجلب نوع وطراز الهاتف/الكمبيوتر بدقة عالية
-// دالة لتوليد معرّف فريد وثابت لكل جهاز لا يتغير حتى لو تغيرت شبكة الواي فاي
-function getUniqueFingerprint() {
-    let fingerprint = localStorage.getItem('unique_client_fp');
-    if (!fingerprint) {
-        // دمج عدة خصائص تقنية لتكوين بصمة فريدة للجهاز
-        const screenRes = `${window.screen.width}x${window.screen.height}`;
-        const colorDepth = window.screen.colorDepth;
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
-        fingerprint = `CLI-${screenRes}-${colorDepth}-${randomString}`;
-        localStorage.setItem('unique_client_fp', fingerprint);
-    }
-    return fingerprint;
+
+// توليد معرّف فريد تماماً لكل إدخال أو تفاعل جديد (Unique Input / Event ID)
+function generateUniqueInputId() {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `INP-${timestamp}-${randomPart}`;
 }
 
-// دالة البصمة الفريدة الذكية (تضمن تمييز كل عميل عن غيره حتى لو كانوا على نفس الواي فاي)
+// توليد رقم كوبون مرجعي جديد كلياً مع كل عملية تقييم إيجابي
+function generateUniqueCouponRef() {
+    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    const timeCode = Date.now().toString().slice(-4);
+    return `VIP-${randomNum}-${timeCode}`;
+}
+
 function getUniqueFingerprint() {
     let fingerprint = localStorage.getItem('unique_client_fp');
     if (!fingerprint) {
@@ -57,27 +55,39 @@ function getUniqueFingerprint() {
     return fingerprint;
 }
 
-// استخدام البصمة المباشرة كمعرّف للجهاز في السجلات
 function getDeviceTypeAndModel() {
     return `زائر رقمي [${getUniqueFingerprint()}]`;
 }
+
 let isHighReview = false;
+let currentCouponRef = "-"; // لتخزين رقم الكوبون الحالي لهذه الجلسة
 
 function rate(stars) {
     const deviceId = getDeviceId();
-    const phoneModel = getPhoneDetails();
+    const phoneModel = getDeviceTypeAndModel();
+    const inputId = generateUniqueInputId(); // معرّف فريد لكل ضغطة إدخال
 
     if (stars >= 4) {
         isHighReview = true;
-        sendLogToBackend("تقييم إيجابي", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars);
+        currentCouponRef = generateUniqueCouponRef(); // توليد رقم كوبون فريد جديد تماماً لكل تقييم
+
+        // تحديث النص في واجهة المستخدم إن وجد
+        const couponEl = document.getElementById('coupon-code-text');
+        if (couponEl) couponEl.innerText = currentCouponRef;
+
+        sendLogToBackend("تقييم إيجابي", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars, currentCouponRef, inputId);
+        
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('main-header').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
     } else {
         isHighReview = false;
+        currentCouponRef = "-";
+        
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('complaint-form').classList.remove('hidden');
-        sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars);
+        
+        sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars, "-", inputId);
     }
 }
 
@@ -85,19 +95,20 @@ function downloadAndRedirect() {
     const card = document.getElementById('coupon-card');
     const statusText = document.getElementById('download-status');
     const btn = document.getElementById('download-btn');
+    const inputId = generateUniqueInputId();
 
     btn.disabled = true;
     statusText.classList.remove('hidden');
 
     html2canvas(card, { scale: 2 }).then(canvas => {
         const link = document.createElement('a');
-        link.download = 'Discount-Coupon.png';
+        link.download = `Discount-Coupon-${currentCouponRef}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
 
         setTimeout(() => {
             if (isHighReview) {
-                sendLogToBackend("انتقال لصفحة جوجل", "تم التوجيه لخرائط جوجل", getDeviceId(), getPhoneDetails(), 5);
+                sendLogToBackend("انتقال لصفحة جوجل", `تم التوجيه لخرائط جوجل | كود: ${currentCouponRef}`, getDeviceId(), getDeviceTypeAndModel(), 5, currentCouponRef, inputId);
                 window.location.href = GOOGLE_REVIEW_URL;
             } else {
                 statusText.innerText = "تم حفظ الكوبون بنجاح! شكراً لتعاونك معنا ✅";
@@ -112,6 +123,7 @@ async function submitComplaint(event) {
     const name = document.getElementById('client-name').value;
     const phone = document.getElementById('client-phone').value;
     const message = document.getElementById('client-message').value;
+    const inputId = generateUniqueInputId();
 
     const payload = {
         type: "complaint",
@@ -119,9 +131,11 @@ async function submitComplaint(event) {
         phone: phone,
         message: message,
         deviceId: getDeviceId(),
-        phoneModel: getPhoneDetails(),
+        phoneModel: getDeviceTypeAndModel(),
         stars: 2,
-        userIp: userIpAddress
+        userIp: userIpAddress,
+        couponRef: "-",
+        inputId: inputId
     };
 
     try {
@@ -140,7 +154,7 @@ async function submitComplaint(event) {
     }
 }
 
-function sendLogToBackend(action, details, deviceId, phoneModel, stars) {
+function sendLogToBackend(action, details, deviceId, phoneModel, stars, couponRef, inputId) {
     fetch(SCRIPT_API_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -152,7 +166,9 @@ function sendLogToBackend(action, details, deviceId, phoneModel, stars) {
             deviceId: deviceId,
             phoneModel: phoneModel,
             stars: stars || 0,
-            userIp: userIpAddress
+            userIp: userIpAddress,
+            couponRef: couponRef || "-",
+            inputId: inputId || generateUniqueInputId()
         })
     });
 }
