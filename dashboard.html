@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحليلات وإدارة السمعة الذكية</title>
     <script>
-        // نظام حماية كلمة المرور الفوري
         (function() {
-            const correctPassword = "1234"; // 🔐 ضع كلمة المرور الخاصة بك هنا
+            const correctPassword = "1234";
             const userPass = prompt("الرجاء إدخال كلمة المرور للوصول إلى لوحة التحكم:");
             if (userPass !== correctPassword) {
                 alert("كلمة المرور غير صحيحة!");
@@ -38,7 +37,7 @@
                     <span class="p-2 bg-blue-50 text-blue-600 rounded-2xl text-xl">📊</span> 
                     لوحة التحليلات والتتبع الموحدة
                 </h1>
-                <p class="text-xs text-slate-500 mt-1 font-medium">سجل تفاعلات مركزي مع تتبع دقيق للـ IP وطراز الهاتف</p>
+                <p class="text-xs text-slate-500 mt-1 font-medium">سجل تفاعلات مع إمكانية البحث برقم الكوبون المرجعي وطراز الجهاز</p>
             </div>
 
             <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
@@ -53,18 +52,13 @@
                     <button onclick="setPeriodFilter('month')" id="btn-period-month" class="px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900">الشهر</button>
                 </div>
 
-                <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs">
-                    <input type="date" id="date-from" onchange="applyFiltersAndRender()" class="bg-white px-2 py-1 rounded-xl text-slate-700 outline-none border text-xs">
-                    <span class="text-slate-400 font-bold">إلى</span>
-                    <input type="date" id="date-to" onchange="applyFiltersAndRender()" class="bg-white px-2 py-1 rounded-xl text-slate-700 outline-none border text-xs">
-                </div>
-
                 <span id="last-update" class="text-xs bg-blue-50 text-blue-600 px-3 py-2 rounded-2xl font-mono font-bold border border-blue-100">جاري التحميل...</span>
             </div>
         </header>
 
+        <!-- الإحصائيات العلوية -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-white p-5 rounded-3xl shadow-sm border flex items-center justify-between">
                 <div>
                     <p class="text-xs text-slate-400 font-bold uppercase">إجمالي التفاعلات</p>
                     <h3 id="total-scans" class="text-3xl font-black text-slate-800 mt-1">0</h3>
@@ -72,7 +66,7 @@
                 <div class="p-3.5 bg-slate-100 text-slate-700 rounded-2xl text-xl">📱</div>
             </div>
 
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-white p-5 rounded-3xl shadow-sm border flex items-center justify-between">
                 <div>
                     <p class="text-xs text-slate-400 font-bold uppercase">التحويل لخرائط جوجل</p>
                     <h3 id="total-positive" class="text-3xl font-black text-emerald-600 mt-1">0</h3>
@@ -80,7 +74,7 @@
                 <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-2xl text-xl">🚀</div>
             </div>
 
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-white p-5 rounded-3xl shadow-sm border flex items-center justify-between">
                 <div>
                     <p class="text-xs text-slate-400 font-bold uppercase">الشكاوى الواردة</p>
                     <h3 id="total-complaints" class="text-3xl font-black text-rose-600 mt-1">0</h3>
@@ -88,7 +82,7 @@
                 <div class="p-3.5 bg-rose-50 text-rose-600 rounded-2xl text-xl">🚨</div>
             </div>
 
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-white p-5 rounded-3xl shadow-sm border flex items-center justify-between">
                 <div>
                     <p class="text-xs text-slate-400 font-bold uppercase">متوسط التقييم العام</p>
                     <h3 id="avg-stars" class="text-3xl font-black text-amber-500 mt-1">0.0 ⭐</h3>
@@ -97,8 +91,9 @@
             </div>
         </div>
 
+        <!-- قسم البحث والرسوم البيانية -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+            <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                         <span>📈</span> انقر على أي شريط نجوم للفلترة الفورية
@@ -110,11 +105,11 @@
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border flex flex-col justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm mb-2">🔍 البحث السريع</h3>
-                    <p class="text-xs text-slate-400 mb-4">ابحث بالاسم، الهاتف، IP العميل، أو طراز الجهاز</p>
-                    <input type="text" id="search-input" onkeyup="filterTables()" placeholder="اكتب هنا للبحث السريع..." class="w-full p-3.5 border border-slate-200 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-medium">
+                    <h3 class="font-bold text-slate-800 text-sm mb-2">🔍 البحث السريع برقم الكوبون أو الهاتف</h3>
+                    <p class="text-xs text-slate-400 mb-4">ابحث مباشرة برقم الكوبون (مثل VIP-XXXXX)، الهاتف، أو الاسم</p>
+                    <input type="text" id="search-input" onkeyup="filterTables()" placeholder="اكتب كود الكوبون أو رقم الهاتف للبحث..." class="w-full p-3.5 border border-slate-200 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-medium">
                 </div>
 
                 <div class="pt-4 border-t space-y-2 text-xs">
@@ -125,12 +120,13 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+        <!-- الجدول الرئيسي -->
+        <div class="bg-white rounded-3xl shadow-sm border overflow-hidden">
+            <div class="p-5 bg-slate-50 border-b flex justify-between items-center">
                 <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                    <span>📑</span> السجل الموحد الشامل لكل التفاعلات والشكاوى
+                    <span>📑</span> السجل الموحد الشامل مع رموز الكوبونات المرجعية
                 </h3>
-                <span class="text-[10px] text-slate-500 font-bold bg-white px-2.5 py-1 rounded-full border">أعمدة قابلة للسحب والتكبير ↔️</span>
+                <span class="text-[10px] text-slate-500 font-bold bg-white px-2.5 py-1 rounded-full border">أعمدة قابلة للسحب ↔️</span>
             </div>
             
             <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
@@ -138,13 +134,13 @@
                     <thead>
                         <tr class="bg-slate-100 text-slate-600 border-b sticky top-0 font-bold">
                             <th class="p-3.5 w-36">التاريخ والوقت <div class="resizer"></div></th>
-                            <th class="p-3.5 w-32">نوع الحدث / الحالة <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32">نوع الحدث <div class="resizer"></div></th>
                             <th class="p-3.5 w-28">النجوم <div class="resizer"></div></th>
+                            <th class="p-3.5 w-32 font-mono text-blue-700">رقم الكوبون (Ref) <div class="resizer"></div></th>
                             <th class="p-3.5 w-28">اسم العميل <div class="resizer"></div></th>
                             <th class="p-3.5 w-28">رقم الهاتف <div class="resizer"></div></th>
                             <th class="p-3.5 w-32">عنوان الـ IP <div class="resizer"></div></th>
-                            <th class="p-3.5 w-36">طراز الهاتف (Model) <div class="resizer"></div></th>
-                            <th class="p-3.5 min-w-[220px]">التفاصيل والرسالة <div class="resizer"></div></th>
+                            <th class="p-3.5 min-w-[200px]">التفاصيل والرسالة <div class="resizer"></div></th>
                         </tr>
                     </thead>
                     <tbody id="master-table-body" class="divide-y divide-slate-100 font-medium">
