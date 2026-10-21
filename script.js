@@ -1,5 +1,5 @@
 const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbx2hiiDXpkCTOqPE2-LQF7c0rd7bWDG7y4LJJ3ku8auC-LW0Wha2aET4vEXL6ZBopdZ/exec";
-const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/%D9%85%D8%B3%D8%AC%D8%AF+%D8%A7%D9%84%D8%B3%D9%8A%D8%AF%D8%A9+%D8%AE%D8%AF%D9%8A%D8%AC%D8%A9+%D8%B1%D8%B6%D9%8A+%D8%A7%D9%84%D9%84%D9%87+%D8%B9%D9%86%D9%87%D8%A7%E2%80%AD/@25.2848258,55.6730083,13z/data=!4m6!3m5!1s0x3ef58d6a26c1ded7:0xf87a5958ff53f9e9!8m2!3d25.2848146!4d55.6436769!16s%2Fg%2F11tn70cps_?entry=ttu&g_ep=EgoyMDI2MTAxOC4wIKXMDSoASAFQAw%3D%3D";
+const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/%D9%85%D8%B3%D8%AC%D8%AF+%D8%A7%D9%84%D8%B3%D9%8A%D8%AF%D8%A9+%D8%AE%D8%AF%D9%8A%D8%AC%D8%A9+%D8%B1%D8%B6%D9%81+%D8%A7%D9%84%D9%84%D9%87+%D8%B9%D9%86%D9%87%D8%A7%E2%80%AD/@25.2848258,55.6730083,13z/data=!4m6!3m5!1s0x3ef58d6a26c1ded7:0xf87a5958ff53f9e9!8m2!3d25.2848146!4d55.6436769!16s%2Fg%2F11tn70cps_?entry=ttu&g_ep=EgoyMDI2MTAxOC4wIKXMDSoASAFQAw%3D%3D";
 
 let userIpAddress = "جاري الجلب...";
 
@@ -20,7 +20,6 @@ async function fetchUserIP() {
 }
 fetchUserIP();
 
-// معرّف ثابت للجهاز كمرجع أساسي
 function getDeviceId() {
     let devId = localStorage.getItem('user_unique_id');
     if (!devId) {
@@ -30,18 +29,18 @@ function getDeviceId() {
     return devId;
 }
 
-// توليد معرّف فريد تماماً لكل إدخال أو تفاعل جديد (Unique Input / Event ID)
 function generateUniqueInputId() {
     const timestamp = Date.now().toString(36).toUpperCase();
     const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
     return `INP-${timestamp}-${randomPart}`;
 }
 
-// توليد رقم كوبون مرجعي جديد كلياً مع كل عملية تقييم إيجابي
-function generateUniqueCouponRef() {
+// توليد رقم كوبون فريد جديد كلياً مع كل عملية تقييم
+function generateUniqueCouponRef(isPositive) {
+    const prefix = isPositive ? 'VIP' : 'SRV';
     const randomNum = Math.floor(100000 + Math.random() * 900000);
     const timeCode = Date.now().toString().slice(-4);
-    return `VIP-${randomNum}-${timeCode}`;
+    return `${prefix}-${randomNum}-${timeCode}`;
 }
 
 function getUniqueFingerprint() {
@@ -60,34 +59,54 @@ function getDeviceTypeAndModel() {
 }
 
 let isHighReview = false;
-let currentCouponRef = "-"; // لتخزين رقم الكوبون الحالي لهذه الجلسة
+let currentCouponRef = "-"; 
+
+// تخصيص شكل ومضمون البطاقة بناءً على نوع التقييم (Tailor Card per Rating)
+function customizeCard(stars) {
+    const card = document.getElementById('coupon-card');
+    const icon = document.getElementById('card-icon');
+    const title = document.getElementById('card-title');
+    const desc = document.getElementById('card-desc');
+    const btn = document.getElementById('download-btn');
+    const codeBox = document.getElementById('coupon-code-text');
+
+    isHighReview = (stars >= 4);
+    currentCouponRef = generateUniqueCouponRef(isHighReview);
+    codeBox.innerText = currentCouponRef;
+
+    if (isHighReview) {
+        // تصميم فاخر للتقييمات الإيجابية (4 و 5 نجوم)
+        card.className = "p-6 bg-gradient-to-tr from-amber-500 via-emerald-600 to-teal-700 text-white rounded-2xl space-y-3 shadow-xl relative overflow-hidden text-center border-2 border-amber-300";
+        icon.innerText = "🎁";
+        title.innerText = "بطاقة خصم وعناية خاصة";
+        desc.innerHTML = `شكراً لتقييمك الرائع (${stars} نجوم)! احصل على خصم <span class="font-black text-amber-200">15%</span> على زيارتك القادمة.`;
+        btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-4 rounded-2xl text-xs transition shadow-lg flex items-center justify-center gap-2";
+    } else {
+        // تصميم مخصص واحترافي للشكاوى أو التقييمات المقبولة (1 إلى 3 نجوم)
+        card.className = "p-6 bg-gradient-to-tr from-slate-700 via-slate-800 to-slate-900 text-white rounded-2xl space-y-3 shadow-xl relative overflow-hidden text-center border-2 border-slate-500";
+        icon.innerText = "🛡️";
+        title.innerText = "إيصال متابعة الشكوى والاهتمام";
+        desc.innerHTML = `تم تسجيل ملاحظتك بعناية فائقة. رقم مرجع المتابعة الخاصة بك هو ما يضمن اهتمام الإدارة الفوري.`;
+        btn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 px-4 rounded-2xl text-xs transition shadow-lg flex items-center justify-center gap-2";
+    }
+}
 
 function rate(stars) {
     const deviceId = getDeviceId();
     const phoneModel = getDeviceTypeAndModel();
-    const inputId = generateUniqueInputId(); // معرّف فريد لكل ضغطة إدخال
+    const inputId = generateUniqueInputId();
+
+    customizeCard(stars);
 
     if (stars >= 4) {
-        isHighReview = true;
-        currentCouponRef = generateUniqueCouponRef(); // توليد رقم كوبون فريد جديد تماماً لكل تقييم
-
-        // تحديث النص في واجهة المستخدم إن وجد
-        const couponEl = document.getElementById('coupon-code-text');
-        if (couponEl) couponEl.innerText = currentCouponRef;
-
         sendLogToBackend("تقييم إيجابي", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars, currentCouponRef, inputId);
-        
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('main-header').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
     } else {
-        isHighReview = false;
-        currentCouponRef = "-";
-        
         document.getElementById('stars-container').classList.add('hidden');
         document.getElementById('complaint-form').classList.remove('hidden');
-        
-        sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars, "-", inputId);
+        sendLogToBackend("تقييم منخفض (شكوى)", `تم اختيار ${stars} نجوم`, deviceId, phoneModel, stars, currentCouponRef, inputId);
     }
 }
 
@@ -102,7 +121,7 @@ function downloadAndRedirect() {
 
     html2canvas(card, { scale: 2 }).then(canvas => {
         const link = document.createElement('a');
-        link.download = `Discount-Coupon-${currentCouponRef}.png`;
+        link.download = `Voucher-${currentCouponRef}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
 
@@ -111,7 +130,7 @@ function downloadAndRedirect() {
                 sendLogToBackend("انتقال لصفحة جوجل", `تم التوجيه لخرائط جوجل | كود: ${currentCouponRef}`, getDeviceId(), getDeviceTypeAndModel(), 5, currentCouponRef, inputId);
                 window.location.href = GOOGLE_REVIEW_URL;
             } else {
-                statusText.innerText = "تم حفظ الكوبون بنجاح! شكراً لتعاونك معنا ✅";
+                statusText.innerText = "تم حفظ مرجع المتابعة بنجاح! سنتواصل معك قريباً ✅";
                 btn.classList.add('hidden');
             }
         }, 1500);
@@ -134,7 +153,7 @@ async function submitComplaint(event) {
         phoneModel: getDeviceTypeAndModel(),
         stars: 2,
         userIp: userIpAddress,
-        couponRef: "-",
+        couponRef: currentCouponRef,
         inputId: inputId
     };
 
@@ -147,7 +166,6 @@ async function submitComplaint(event) {
         });
 
         document.getElementById('complaint-form').classList.add('hidden');
-        document.getElementById('main-header').classList.add('hidden');
         document.getElementById('reward-box').classList.remove('hidden');
     } catch (err) {
         alert("حدث خطأ في الإرسال، يرجى المحاولة مرة أخرى.");
