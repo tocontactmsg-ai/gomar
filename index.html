@@ -9,13 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style> 
         body { font-family: 'Cairo', sans-serif; }
-        .star-btn {
-            transition: all 0.2s ease-in-out;
-        }
-        .star-btn:hover {
-            transform: scale(1.2);
-            filter: drop-shadow(0px 0px 8px rgba(250, 204, 21, 0.8));
-        }
+        .star-btn { transition: all 0.2s ease-in-out; }
+        .star-btn:hover { transform: scale(1.2); filter: drop-shadow(0px 0px 8px rgba(250, 204, 21, 0.8)); }
     </style>
 </head>
 <body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
@@ -28,7 +23,7 @@
             <p class="text-slate-500 mt-2 text-xs font-medium">كيف كانت تجربتك معنا اليوم؟ اختر التقييم المناسب:</p>
         </div>
 
-        <!-- نظام النجوم المصمم بوضوح عالي (High-Visibility Stars) -->
+        <!-- نظام النجوم -->
         <div id="stars-container" class="space-y-3 py-2">
             <div class="flex justify-between items-center max-w-xs mx-auto text-3xl sm:text-4xl cursor-pointer dir-ltr">
                 <button onclick="rate(1)" class="star-btn focus:outline-none p-1" title="سيء جداً">⭐</button>
@@ -66,26 +61,25 @@
             <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">إرسال الشكوى للإدارة المباشرة</button>
         </form>
 
-        <!-- بطاقة الكوبون الفاخرة (Styled Gift Voucher Card) -->
+        <!-- بطاقة المكافأة أو التقدير القابلة للتخصيص (Dynamic Card) -->
         <div id="reward-box" class="hidden space-y-4">
             
-            <div id="coupon-card" class="p-6 bg-gradient-to-tr from-amber-500 via-emerald-600 to-teal-700 text-white rounded-2xl space-y-3 shadow-xl relative overflow-hidden text-center border-2 border-amber-300">
-                <div class="text-4xl drop-shadow-md">🎁</div>
-                <h4 class="font-black text-lg text-amber-100 tracking-wide">بطاقة خصم خاصة</h4>
-                <p class="text-xs text-emerald-50 leading-relaxed font-medium">احصل على خصم <span class="font-black text-amber-200">15%</span> على زيارتك القادمة تقديرًا لوقتك معنا!</p>
+            <div id="coupon-card" class="p-6 text-white rounded-2xl space-y-3 shadow-xl relative overflow-hidden text-center border-2 transition-all">
+                <div id="card-icon" class="text-4xl drop-shadow-md">🎁</div>
+                <h4 id="card-title" class="font-black text-lg tracking-wide">بطاقة خصم خاصة</h4>
+                <p id="card-desc" class="text-xs leading-relaxed font-medium">احصل على خصم خاص على زيارتك القادمة!</p>
 
-               <div id="coupon-code-text" class="bg-white/95 backdrop-blur border-2 border-dashed border-amber-400 py-3 px-4 rounded-xl text-slate-900 font-mono font-black text-2xl tracking-widest shadow-inner">
-    VIP-------
-</div>
-                <p class="text-[10px] text-emerald-100 opacity-90">يرجى إبراز الصورة للموظف عند الزيارة القادمة</p>
+                <div id="coupon-code-text" class="bg-white/95 backdrop-blur border-2 border-dashed py-3 px-4 rounded-xl text-slate-900 font-mono font-black text-2xl tracking-widest shadow-inner">
+                    VIP-######
+                </div>
+                <p id="card-footer" class="text-[10px] opacity-90">يرجى إبراز المرجع للموظف عند الزيارة</p>
             </div>
 
-            <!-- زر التنزيل الوحيد والمباشر (Download & Proceed) -->
-            <button id="download-btn" onclick="downloadAndRedirect()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-4 rounded-2xl text-xs transition shadow-lg flex items-center justify-center gap-2">
-                <span>📸</span> تنزيل بطاقة الخصم واستلام الهدايا
+            <button id="download-btn" onclick="downloadAndRedirect()" class="w-full font-extrabold py-3.5 px-4 rounded-2xl text-xs transition shadow-lg flex items-center justify-center gap-2 text-white">
+                <span>📸</span> تنزيل البطاقة ومتابعة الخدمة
             </button>
 
-            <p id="download-status" class="text-[11px] font-bold text-emerald-600 hidden">جاري الحفظ والتوجيه... 🚀</p>
+            <p id="download-status" class="text-[11px] font-bold hidden">جاري الحفظ والمعالجة... 🚀</p>
 
         </div>
 
