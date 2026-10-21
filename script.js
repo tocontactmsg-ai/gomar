@@ -29,51 +29,43 @@ function getDeviceId() {
     return devId;
 }
 // دالة ذكية ومحدثة لجلب نوع وطراز الهاتف/الكمبيوتر بدقة عالية
-function getPhoneDetails() {
-    const ua = navigator.userAgent;
-
-    // 1. فحص أجهزة أبل (iOS / Mac)
-    if (/iPhone/i.test(ua)) return "iPhone";
-    if (/iPad/i.test(ua)) return "iPad";
-    if (/Macintosh|Mac OS X/i.test(ua)) return "كمبيوتر Mac";
-
-    // 2. فحص أجهزة أندرويد واستخراج الطراز بدقة
-    if (/Android/i.test(ua)) {
-        // محاولة استخراج اسم الموديل المكتوب في الـ UserAgent
-        let modelMatch = ua.match(/Android\s+[\d\.]+;\s*([^;\)]+)/i);
-        let model = modelMatch && modelMatch[1] ? modelMatch[1].trim() : "";
-
-        // تنظيف النص وتوضيح الشركة والموديل
-        if (/SM-|Samsung/i.test(ua) || /SM-/i.test(model)) {
-            return "سامسونج (" + (model.replace(/Build.*/i, '').trim() || "Galaxy") + ")";
-        }
-        if (/Redmi|Xiaomi|POCO|Mi/i.test(ua)) {
-            return "شاومي/ريدمي (" + (model.replace(/Build.*/i, '').trim() || "Redmi") + ")";
-        }
-        if (/HUAWEI|HONOR|VOG-|ELE-|ALN-/i.test(ua)) {
-            return "هواوي/هونر (" + (model.replace(/Build.*/i, '').trim() || "Huawei") + ")";
-        }
-        if (/Pixel/i.test(ua)) {
-            return "جوجل بكسل (" + (model.replace(/Build.*/i, '').trim() || "Pixel") + ")";
-        }
-        if (/OPPO|CPH/i.test(ua)) {
-            return "أوبو (" + (model.replace(/Build.*/i, '').trim() || "OPPO") + ")";
-        }
-        if (/Realme|RMX/i.test(ua)) {
-            return "ريلمي (" + (model.replace(/Build.*/i, '').trim() || "Realme") + ")";
-        }
-        if (/OnePlus|DN2103|NE2213/i.test(ua)) {
-            return "ون بلس";
-        }
+// دالة لتوليد معرّف فريد وثابت لكل جهاز لا يتغير حتى لو تغيرت شبكة الواي فاي
+function getUniqueFingerprint() {
+    let fingerprint = localStorage.getItem('unique_client_fp');
+    if (!fingerprint) {
+        // دمج عدة خصائص تقنية لتكوين بصمة فريدة للجهاز
+        const screenRes = `${window.screen.width}x${window.screen.height}`;
+        const colorDepth = window.screen.colorDepth;
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
         
-        return model ? "أندرويد (" + model.replace(/Build.*/i, '').trim() + ")" : "هاتف أندرويد";
+        fingerprint = `CLI-${screenRes}-${colorDepth}-${randomString}`;
+        localStorage.setItem('unique_client_fp', fingerprint);
+    }
+    return fingerprint;
+}
+
+// دالة مبسطة وواضحة لتحديد نوع الجهاز ونظامه بشكل مضمون
+function getDeviceTypeAndModel() {
+    const ua = navigator.userAgent;
+    let deviceCategory = "كمبيوتر / مكتبي";
+
+    if (/iPhone|iPad|iPod/i.test(ua)) {
+        deviceCategory = "أجهزة أبل (iOS)";
+    } else if (/Android/i.test(ua)) {
+        if (/Samsung/i.test(ua) || /SM-/i.test(ua)) deviceCategory = "هاتف سامسونج أندرويد";
+        else if (/Xiaomi|Redmi|POCO/i.test(ua)) deviceCategory = "هاتف شاومي أندرويد";
+        else if (/Huawei|Honor/i.test(ua)) deviceCategory = "هاتف هواوي/هونر";
+        else if (/Pixel/i.test(ua)) deviceCategory = "هاتف جوجل بكسل";
+        else deviceCategory = "هاتف أندرويد آخر";
+    } else if (/Macintosh/i.test(ua)) {
+        deviceCategory = "كمبيوتر Mac";
+    } else if (/Windows/i.test(ua)) {
+        deviceCategory = "كمبيوتر Windows";
     }
 
-    // 3. فحص أجهزة أسطح المكتب (Windows / Linux)
-    if (/Windows NT/i.test(ua)) return "كمبيوتر Windows";
-    if (/Linux/i.test(ua)) return "كمبيوتر Linux";
-
-    return "جهاز غير معروف";
+    // دمج نوع الجهاز مع البصمة الفريدة لضمان التمييز التام حتى لو كانوا على نفس الواي فاي
+    return `${deviceCategory} [${getUniqueFingerprint()}]`;
 }
 let isHighReview = false;
 
