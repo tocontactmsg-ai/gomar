@@ -23,9 +23,6 @@ async function loadData() {
 
 function setPeriodFilter(period) {
     activePeriod = period;
-    document.getElementById('date-from').value = "";
-    document.getElementById('date-to').value = "";
-
     ['all', 'today', 'week', 'month'].forEach(p => {
         const btn = document.getElementById(`btn-period-${p}`);
         if (p === period) {
@@ -34,7 +31,6 @@ function setPeriodFilter(period) {
             btn.className = "px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900";
         }
     });
-
     applyFiltersAndRender();
 }
 
@@ -49,41 +45,15 @@ function applyFiltersAndRender() {
     const rawLogs = globalData.logs || [];
     const rawComplaints = globalData.complaints || [];
 
-    const dateFrom = document.getElementById('date-from').value ? new Date(document.getElementById('date-from').value) : null;
-    const dateTo = document.getElementById('date-to').value ? new Date(document.getElementById('date-to').value) : null;
-
-    let filteredLogs = rawLogs.filter((r, idx) => {
-        if (idx === 0) return true;
-        const rowDate = new Date(r[0]);
-        if (dateFrom && rowDate < dateFrom) return false;
-        if (dateTo) {
-            let nextDay = new Date(dateTo);
-            nextDay.setDate(nextDay.getDate() + 1);
-            if (rowDate >= nextDay) return false;
-        }
-        if (!dateFrom && !dateTo) return isDateInPeriod(rowDate, activePeriod);
-        return true;
-    });
-
-    let filteredComplaints = rawComplaints.filter((r, idx) => {
-        if (idx === 0) return true;
-        const rowDate = new Date(r[0]);
-        if (dateFrom && rowDate < dateFrom) return false;
-        if (dateTo) {
-            let nextDay = new Date(dateTo);
-            nextDay.setDate(nextDay.getDate() + 1);
-            if (rowDate >= nextDay) return false;
-        }
-        if (!dateFrom && !dateTo) return isDateInPeriod(rowDate, activePeriod);
-        return true;
-    });
+    let filteredLogs = rawLogs.filter((r, idx) => idx === 0 || isDateInPeriod(new Date(r[0]), activePeriod));
+    let filteredComplaints = rawComplaints.filter((r, idx) => idx === 0 || isDateInPeriod(new Date(r[0]), activePeriod));
 
     let starsCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     let totalStarsSum = 0;
     let totalRatedItems = 0;
 
     filteredLogs.slice(1).forEach(r => {
-        let stars = parseInt(r[6]) || extractStarsFromDetails(r[3]) || 0;
+        let stars = parseInt(r[5]) || 0;
         if (stars >= 1 && stars <= 5) {
             starsCount[stars]++;
             totalStarsSum += stars;
@@ -92,7 +62,7 @@ function applyFiltersAndRender() {
     });
 
     filteredComplaints.slice(1).forEach(r => {
-        let stars = parseInt(r[7]) || 2;
+        let stars = parseInt(r[6]) || 2;
         if (stars >= 1 && stars <= 5) {
             starsCount[stars]++;
             totalStarsSum += stars;
@@ -101,17 +71,8 @@ function applyFiltersAndRender() {
     });
 
     if (selectedStarFilter !== null) {
-        filteredLogs = filteredLogs.filter((r, idx) => {
-            if (idx === 0) return true;
-            let stars = parseInt(r[6]) || extractStarsFromDetails(r[3]) || 0;
-            return stars === selectedStarFilter;
-        });
-
-        filteredComplaints = filteredComplaints.filter((r, idx) => {
-            if (idx === 0) return true;
-            let stars = parseInt(r[7]) || 2;
-            return stars === selectedStarFilter;
-        });
+        filteredLogs = filteredLogs.filter((r, idx) => idx === 0 || (parseInt(r[5]) || 0) === selectedStarFilter);
+        filteredComplaints = filteredComplaints.filter((r, idx) => idx === 0 || (parseInt(r[6]) || 2) === selectedStarFilter);
     }
 
     const totalScans = Math.max(0, filteredLogs.length - 1);
@@ -128,12 +89,6 @@ function applyFiltersAndRender() {
     renderMasterTable(filteredLogs, filteredComplaints);
 }
 
-function extractStarsFromDetails(txt) {
-    if (!txt) return 0;
-    let match = String(txt).match(/(\d)\s*نجوم/);
-    return match ? parseInt(match[1]) : 0;
-}
-
 function isDateInPeriod(dateObj, period) {
     if (!dateObj || isNaN(dateObj.getTime())) return true;
     const now = new Date();
@@ -148,40 +103,38 @@ function renderMasterTable(logs, complaints) {
     tbody.innerHTML = "";
     let combinedRows = [];
 
+    // Logs structure expected: [Date, Action, Details, DeviceId, PhoneModel, Stars, IP, CouponRef, InputId]
     for (let i = 1; i < logs.length; i++) {
         const r = logs[i];
         const isPositive = r[1] && String(r[1]).includes("إيجابي");
         combinedRows.push({
-            date: r[0] ? new Date(r[0]) : new Date(0),
             dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
             type: r[1] || 'نشاط',
             badgeClass: isPositive ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800",
-            stars: r[6] || extractStarsFromDetails(r[3]) || (isPositive ? 5 : 3),
+            stars: parseInt(r[5]) || (isPositive ? 5 : 3),
+            couponRef: r[7] || '-',
             clientName: '-',
             phone: '-',
-            ip: r[7] || '0.0.0.0',
-            phoneModel: r[5] || 'غير معروف',
-            details: r[3] || '-'
+            ip: r[6] || '0.0.0.0',
+            details: r[2] || '-'
         });
     }
 
+    // Complaints structure expected: [Date, Name, Phone, Message, DeviceId, PhoneModel, Stars, IP, CouponRef, InputId]
     for (let i = 1; i < complaints.length; i++) {
         const r = complaints[i];
         combinedRows.push({
-            date: r[0] ? new Date(r[0]) : new Date(0),
             dateStr: r[0] ? new Date(r[0]).toLocaleString('ar-AE') : '-',
             type: '🚨 شكوى داخلية',
             badgeClass: "bg-rose-100 text-rose-800 font-bold",
-            stars: r[7] || 2,
+            stars: parseInt(r[6]) || 2,
+            couponRef: r[8] || '-',
             clientName: r[1] || 'غير محدد',
             phone: r[2] || '-',
-            ip: r[8] || '0.0.0.0',
-            phoneModel: r[6] || 'غير معروف',
-            details: r[4] || '-'
+            ip: r[7] || '0.0.0.0',
+            details: r[3] || '-'
         });
     }
-
-    combinedRows.sort((a, b) => b.date - a.date);
 
     if (combinedRows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">لا توجد بيانات مسجلة.</td></tr>`;
@@ -197,10 +150,10 @@ function renderMasterTable(logs, complaints) {
                 <td class="p-3.5 font-mono text-slate-400">${row.dateStr}</td>
                 <td class="p-3.5"><span class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${row.badgeClass}">${row.type}</span></td>
                 <td class="p-3.5 font-bold">${starVisual} (${row.stars}/5)</td>
+                <td class="p-3.5 font-mono font-black text-blue-700 bg-blue-50/50">${row.couponRef}</td>
                 <td class="p-3.5 font-bold text-slate-800">${row.clientName}</td>
                 <td class="p-3.5">${phoneLink}</td>
-                <td class="p-3.5 font-mono text-blue-600 font-bold">${row.ip}</td>
-                <td class="p-3.5 text-slate-700 font-medium">${row.phoneModel}</td>
+                <td class="p-3.5 font-mono text-slate-600">${row.ip}</td>
                 <td class="p-3.5 text-slate-800 font-semibold leading-relaxed">${row.details}</td>
             </tr>
         `;
@@ -216,7 +169,7 @@ function renderStarsChart(starsData) {
     chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['1 نجمة ⭐', '2 نجمتان ⭐⭐', '3 نجوم ⭐⭐⭐', '4 نجوم ⭐⭐⭐⭐', '5 نجوم ⭐⭐⭐⭐⭐'],
+            labels: ['1 نجمة', '2 نجوم', '3 نجوم', '4 نجوم', '5 نجوم'],
             datasets: [{
                 data: [starsData[1], starsData[2], starsData[3], starsData[4], starsData[5]],
                 backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#14b8a6', '#10b981'],
@@ -243,18 +196,18 @@ function renderStarsChart(starsData) {
 
 function exportToCSV() {
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += "Date,Type,Stars,Client Name,Phone,IP Address,Phone Model,Details\n";
+    csvContent += "Date,Type,Stars,Coupon Ref,Client Name,Phone,IP Address,Details\n";
 
     const rawLogs = globalData.logs || [];
     for (let i = 1; i < rawLogs.length; i++) {
         let r = rawLogs[i];
-        csvContent += `"${r[0]}","${r[1]}","${r[6] || ''}","-","-","${r[7] || ''}","${r[5] || ''}","${r[3]}"\n`;
+        csvContent += `"${r[0]}","${r[1]}","${r[5] || ''}","${r[7] || ''}","-","-","${r[6] || ''}","${r[2]}"\n`;
     }
 
     const rawComp = globalData.complaints || [];
     for (let i = 1; i < rawComp.length; i++) {
         let r = rawComp[i];
-        csvContent += `"${r[0]}","Complaint","${r[7] || 2}","${r[1]}","${r[2]}","${r[8] || ''}","${r[6] || ''}","${r[4]}"\n`;
+        csvContent += `"${r[0]}","Complaint","${r[6] || 2}","${r[8] || ''}","${r[1]}","${r[2]}","${r[7] || ''}","${r[3]}"\n`;
     }
 
     const link = document.createElement("a");
