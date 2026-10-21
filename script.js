@@ -45,27 +45,21 @@ function getUniqueFingerprint() {
     return fingerprint;
 }
 
-// دالة مبسطة وواضحة لتحديد نوع الجهاز ونظامه بشكل مضمون
-function getDeviceTypeAndModel() {
-    const ua = navigator.userAgent;
-    let deviceCategory = "كمبيوتر / مكتبي";
-
-    if (/iPhone|iPad|iPod/i.test(ua)) {
-        deviceCategory = "أجهزة أبل (iOS)";
-    } else if (/Android/i.test(ua)) {
-        if (/Samsung/i.test(ua) || /SM-/i.test(ua)) deviceCategory = "هاتف سامسونج أندرويد";
-        else if (/Xiaomi|Redmi|POCO/i.test(ua)) deviceCategory = "هاتف شاومي أندرويد";
-        else if (/Huawei|Honor/i.test(ua)) deviceCategory = "هاتف هواوي/هونر";
-        else if (/Pixel/i.test(ua)) deviceCategory = "هاتف جوجل بكسل";
-        else deviceCategory = "هاتف أندرويد آخر";
-    } else if (/Macintosh/i.test(ua)) {
-        deviceCategory = "كمبيوتر Mac";
-    } else if (/Windows/i.test(ua)) {
-        deviceCategory = "كمبيوتر Windows";
+// دالة البصمة الفريدة الذكية (تضمن تمييز كل عميل عن غيره حتى لو كانوا على نفس الواي فاي)
+function getUniqueFingerprint() {
+    let fingerprint = localStorage.getItem('unique_client_fp');
+    if (!fingerprint) {
+        const screenRes = `${window.screen.width}x${window.screen.height}`;
+        const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+        fingerprint = `UID-${screenRes}-${randomString}`;
+        localStorage.setItem('unique_client_fp', fingerprint);
     }
+    return fingerprint;
+}
 
-    // دمج نوع الجهاز مع البصمة الفريدة لضمان التمييز التام حتى لو كانوا على نفس الواي فاي
-    return `${deviceCategory} [${getUniqueFingerprint()}]`;
+// استخدام البصمة المباشرة كمعرّف للجهاز في السجلات
+function getDeviceTypeAndModel() {
+    return `زائر رقمي [${getUniqueFingerprint()}]`;
 }
 let isHighReview = false;
 
